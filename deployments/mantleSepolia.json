@@ -1,0 +1,11 @@
+{
+  "network": "mantleSepolia",
+  "chainId": 5003,
+  "deployer": "0x6FdAa3B94bFbe5dc96C4F148c811f74138e92171",
+  "collateral": "Native MNT",
+  "contracts": {
+    "factory": "0xF79884A18E7eeDD24d55f1A3BbA745Eb646Fd7f8",
+    "sampleMarket": "0xa1504E28Af39CdB48f36AE86582663Fa3DF3777b"
+  },
+  "timestamp": "2025-12-24T21:07:11.953Z"
+}
