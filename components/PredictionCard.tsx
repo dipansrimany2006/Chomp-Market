@@ -133,17 +133,24 @@ const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, className }
   // Calculate conviction (highest odds percentage)
   const conviction = Math.max(...odds);
 
-  // Get status display
+  // Get status display - prioritize blockchain isOpen field if available
   const getStatusDisplay = () => {
-    if (prediction.status === 'resolved') return 'Expired';
+    // If we have blockchain data, use it as the source of truth
+    if (prediction.isOpen !== undefined) {
+      if (prediction.status === 'resolved') return 'Resolved';
+      if (prediction.status === 'cancelled') return 'Cancelled';
+      return prediction.isOpen ? 'Active' : 'Closed';
+    }
+    // Fallback to API status and date logic
+    if (prediction.status === 'resolved') return 'Resolved';
     if (prediction.status === 'cancelled') return 'Cancelled';
     const endDate = new Date(prediction.endDate);
-    if (endDate < new Date()) return 'Expired';
+    if (endDate < new Date()) return 'Closed';
     return 'Active';
   };
 
   const statusDisplay = getStatusDisplay();
-  const isExpired = statusDisplay === 'Expired' || statusDisplay === 'Cancelled';
+  const isMarketClosed = statusDisplay !== 'Active';
 
   const handleCardClick = () => {
     router.push(`/prediction/${prediction.id}`);
@@ -209,15 +216,15 @@ const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, className }
         {/* Status Badge */}
         <span className={cn(
           'px-2.5 py-1 rounded-full text-xs font-medium flex items-center gap-1',
-          isExpired
+          isMarketClosed
             ? 'bg-muted text-muted-foreground'
             : 'bg-primary/20 text-primary'
         )}>
           <span className={cn(
             'w-1.5 h-1.5 rounded-full',
-            isExpired ? 'bg-muted-foreground' : 'bg-primary'
+            isMarketClosed ? 'bg-muted-foreground' : 'bg-primary'
           )} />
-          {isExpired ? 'Closed' : 'Active'}
+          {statusDisplay}
         </span>
 
         {/* USDC Badge */}

@@ -1,25 +1,8 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
-import { ChevronDown, Check, TrendingUp, Sparkles, ChevronLeft, ChevronRight, LayoutGrid } from 'lucide-react';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command';
+import React, { useRef, useState, useEffect } from 'react';
+import { TrendingUp, Sparkles, ChevronLeft, ChevronRight, LayoutGrid } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-const mainCategories: string[] = [];
-
-const moreCategories: { value: string; label: string }[] = [];
 
 interface CategoryScrollProps {
   activeCategory: string | null;
@@ -28,10 +11,25 @@ interface CategoryScrollProps {
 
 const CategoryScroll: React.FC<CategoryScrollProps> = ({ activeCategory, onCategoryChange }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [open, setOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [categories, setCategories] = useState<string[]>([]);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(true);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch('/api/category');
+        const data = await response.json();
+        if (data.success && data.categories) {
+          setCategories(data.categories);
+        }
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   const handleScroll = () => {
     if (scrollContainerRef.current) {
@@ -57,7 +55,7 @@ const CategoryScroll: React.FC<CategoryScrollProps> = ({ activeCategory, onCateg
 
   return (
     <div className="w-full px-6">
-      <div className="flex items-center gap-2 backdrop-blur-lg border-b border-t border-border px-2 py-1.5">
+      <div className="flex items-center gap-2 backdrop-blur-lg  rounded-3xl p-2 mt-4.5">
         {/* Fixed Left Section - All, Trending & New */}
         <div className="flex items-center gap-1 shrink-0">
           <button
@@ -126,7 +124,7 @@ const CategoryScroll: React.FC<CategoryScrollProps> = ({ activeCategory, onCateg
               msOverflowStyle: 'none',
             }}
           >
-            {mainCategories.map((category) => (
+            {categories.map((category) => (
               <button
                 key={category}
                 type="button"
@@ -153,69 +151,6 @@ const CategoryScroll: React.FC<CategoryScrollProps> = ({ activeCategory, onCateg
               <ChevronRight className="w-4 h-4" />
             </button>
           )}
-        </div>
-
-        {/* Divider */}
-        <div className="w-px h-6 bg-border shrink-0" />
-
-        {/* Fixed Right Section - More Combobox */}
-        <div className="shrink-0">
-          <Popover open={open} onOpenChange={setOpen}>
-
-            <PopoverTrigger asChild>
-              <button
-                type="button"
-                className={cn(
-                  'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all',
-                  selectedCategory
-                    ? 'bg-primary/20 text-primary'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                )}
-              >
-                {selectedCategory
-                  ? moreCategories.find((cat) => cat.value === selectedCategory)?.label
-                  : 'More'}
-                <ChevronDown className={cn('w-4 h-4 transition-transform', open && 'rotate-180')} />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent
-              className="w-[200px] p-0 bg-card/90 border-border backdrop-blur-xl"
-              align="end"
-            >
-              <Command className="bg-transparent">
-                <CommandInput
-                  placeholder="Search categories..."
-                  className="text-foreground placeholder:text-muted-foreground"
-                />
-                <CommandList>
-                  <CommandEmpty className="text-muted-foreground">No category found.</CommandEmpty>
-                  <CommandGroup>
-                    {moreCategories.map((category) => (
-                      <CommandItem
-                        key={category.value}
-                        value={category.value}
-                        onSelect={(currentValue) => {
-                          const newValue = currentValue === selectedCategory ? null : currentValue;
-                          setSelectedCategory(newValue);
-                          onCategoryChange(newValue ? category.label : null);
-                          setOpen(false);
-                        }}
-                        className="text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
-                      >
-                        <Check
-                          className={cn(
-                            'mr-2 h-4 w-4',
-                            selectedCategory === category.value ? 'opacity-100' : 'opacity-0'
-                          )}
-                        />
-                        {category.label}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
         </div>
       </div>
     </div>

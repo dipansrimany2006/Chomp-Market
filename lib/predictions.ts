@@ -15,6 +15,7 @@ export interface Prediction {
   creatorAddress?: string;     // Creator's wallet address
   createdAt?: string;          // Creation timestamp
   status?: 'active' | 'resolved' | 'cancelled';  // Market status
+  isOpen?: boolean;            // Whether market is open for betting (from blockchain)
 }
 
 // API Poll response type - Updated for custom options

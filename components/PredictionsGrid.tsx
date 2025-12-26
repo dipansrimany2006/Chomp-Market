@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import PredictionCard from './PredictionCard';
 import { Prediction, PollFromAPI, transformPollToPrediction } from '@/lib/predictions';
-import { fetchMarketInfo } from '@/lib/contracts';
+import { fetchMarketInfo, MarketStatus } from '@/lib/contracts';
 import { Loader2 } from 'lucide-react';
 
 interface PredictionsGridProps {
@@ -39,11 +39,20 @@ const PredictionsGrid: React.FC<PredictionsGridProps> = ({ activeCategory }) => 
               if (prediction.contractAddress) {
                 try {
                   const marketInfo = await fetchMarketInfo(prediction.contractAddress);
+                  // Convert blockchain status to prediction status
+                  const statusMap: Record<MarketStatus, 'active' | 'resolved' | 'cancelled'> = {
+                    [MarketStatus.Active]: 'active',
+                    [MarketStatus.Resolved]: 'resolved',
+                    [MarketStatus.Cancelled]: 'cancelled',
+                  };
                   return {
                     ...prediction,
                     odds: marketInfo.odds,
                     // Recalculate price change based on live odds
                     priceChange: marketInfo.odds[0] - (100 / marketInfo.odds.length),
+                    // Use blockchain status for accurate market state
+                    status: statusMap[marketInfo.status],
+                    isOpen: marketInfo.isOpen,
                   };
                 } catch (err) {
                   console.warn(`Failed to fetch live odds for ${prediction.id}:`, err);
