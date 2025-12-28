@@ -122,6 +122,7 @@ const PredictionDetailModal: React.FC<PredictionDetailModalProps> = ({
               label,
               percentage: odds[i] || 50,
             }))}
+            marketId={prediction.id}
             height={160}
             className="bg-[#fffaf3]/5"
           />

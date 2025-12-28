@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import {
   CartesianGrid,
   Line,
@@ -8,17 +8,16 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  ReferenceLine,
 } from "recharts";
 import { cn } from "@/lib/utils";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
 
-// Color palette for multiple options
+// Color palette for multiple options (matching mockup style)
 const OPTION_COLORS = [
-  { color: "#00bf63", bg: "rgba(0, 191, 99, 0.9)", name: "green" },
-  { color: "#ee3e3d", bg: "rgba(238, 62, 61, 0.9)", name: "red" },
-  { color: "#ffa51f", bg: "rgba(255, 165, 31, 0.9)", name: "orange" },
-  { color: "#0081cc", bg: "rgba(0, 129, 204, 0.9)", name: "blue" },
+    { color: "#00bf63", bg: "rgba(0, 191, 99, 0.9)", name: "green" },
+    { color: "#ee3e3d", bg: "rgba(238, 62, 61, 0.9)", name: "red" },
+    { color: "#ffa51f", bg: "rgba(255, 165, 31, 0.9)", name: "orange" }, 
+    { color: "#0081cc", bg: "rgba(0, 129, 204, 0.9)", name: "blue" },
 ];
 
 interface OptionData {
@@ -28,11 +27,15 @@ interface OptionData {
 
 interface PriceChartProps {
   options: OptionData[];
+  marketId?: string;
   height?: number;
   className?: string;
 }
 
-type TimePeriod = "5m" | "15m" | "1H" | "4H" | "1D";
+type TimePeriod = "1H" | "3H" | "24H" | "7D" | "ALL";
+
+// Storage key for price history
+const PRICE_HISTORY_KEY = "prediction_market_price_history";
 
 interface ChartDataPoint {
   time: string;
@@ -41,65 +44,60 @@ interface ChartDataPoint {
   [key: string]: string | number;
 }
 
-// Custom tooltip that shows labels at each data point
-const CustomTooltip = ({
-  active,
-  payload,
-  label,
-  coordinate,
-  viewBox,
-  options,
-  selectedOptions,
-}: any) => {
-  if (!active || !payload || !payload.length) return null;
+interface StoredPriceHistory {
+  [marketId: string]: {
+    dataPoints: ChartDataPoint[];
+    lastUpdated: number;
+  };
+}
 
-  const fullTime = payload[0]?.payload?.fullTime || label;
+// Helper functions for localStorage
+const getPriceHistory = (marketId: string): ChartDataPoint[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    const stored = localStorage.getItem(PRICE_HISTORY_KEY);
+    if (!stored) return [];
+    const history: StoredPriceHistory = JSON.parse(stored);
+    return history[marketId]?.dataPoints || [];
+  } catch {
+    return [];
+  }
+};
 
-  return (
-    <div className="pointer-events-none">
-      {/* Date label at top */}
-      <div
-        className="absolute left-1/2 -translate-x-1/2 px-3 py-1 rounded-md bg-foreground/10 backdrop-blur-sm text-foreground text-xs font-medium whitespace-nowrap"
-        style={{ top: -30 }}
-      >
-        {fullTime}
-      </div>
+const savePriceHistory = (marketId: string, dataPoints: ChartDataPoint[]) => {
+  if (typeof window === "undefined") return;
+  try {
+    const stored = localStorage.getItem(PRICE_HISTORY_KEY);
+    const history: StoredPriceHistory = stored ? JSON.parse(stored) : {};
+    history[marketId] = {
+      dataPoints,
+      lastUpdated: Date.now(),
+    };
+    localStorage.setItem(PRICE_HISTORY_KEY, JSON.stringify(history));
+  } catch {
+    // Ignore storage errors
+  }
+};
 
-      {/* Individual option labels */}
-      {payload.map((entry: any, index: number) => {
-        const optionIndex = parseInt(entry.dataKey.replace("option", ""));
-        if (!selectedOptions.has(optionIndex)) return null;
-
-        const colorInfo = OPTION_COLORS[optionIndex % OPTION_COLORS.length];
-        const opt = options[optionIndex];
-        const value = entry.value;
-
-        // Calculate Y position based on value (0-100 scale)
-        const chartHeight = viewBox?.height || 200;
-        const chartTop = viewBox?.y || 0;
-        const yPos = chartTop + chartHeight - (value / 100) * chartHeight;
-
-        return (
-          <div
-            key={entry.dataKey}
-            className="absolute px-2 py-1 rounded-md text-xs font-medium whitespace-nowrap transform -translate-x-1/2"
-            style={{
-              backgroundColor: colorInfo.bg,
-              color: "#fff",
-              left: coordinate?.x || 0,
-              top: yPos - 12,
-            }}
-          >
-            {opt?.label} • {value?.toFixed(0)}%
-          </div>
-        );
-      })}
-    </div>
-  );
+// Check if percentages have changed significantly (more than 0.1%)
+const hasPercentageChanged = (
+  newPercentages: number[],
+  lastPoint: ChartDataPoint | undefined,
+  optionCount: number
+): boolean => {
+  if (!lastPoint) return true;
+  for (let i = 0; i < optionCount; i++) {
+    const lastValue = lastPoint[`option${i}`] as number;
+    if (Math.abs(newPercentages[i] - lastValue) > 0.1) {
+      return true;
+    }
+  }
+  return false;
 };
 
 // Custom cursor (vertical line)
-const CustomCursor = ({ points, height }: any) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const CustomCursor = ({ points, height }: { points?: any[]; height?: number }) => {
   if (!points || !points.length) return null;
   const { x } = points[0];
 
@@ -119,13 +117,22 @@ const CustomCursor = ({ points, height }: any) => {
 
 const PriceChart: React.FC<PriceChartProps> = ({
   options,
+  marketId = "default",
   height = 300,
   className,
 }) => {
-  const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>("1H");
+  const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>("ALL");
   const [selectedOptions, setSelectedOptions] = useState<Set<number>>(
     new Set(options.map((_, i) => i))
   );
+  const [priceHistory, setPriceHistory] = useState<ChartDataPoint[]>([]);
+  const [isClient, setIsClient] = useState(false);
+  const lastPercentagesRef = useRef<number[]>([]);
+
+  // Set client flag after mount to avoid hydration mismatch
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Build chart config dynamically
   const chartConfig = useMemo(() => {
@@ -140,128 +147,124 @@ const PriceChart: React.FC<PriceChartProps> = ({
     return config;
   }, [options]);
 
-  // Generate chart data based on selected period
-  const chartData = useMemo(() => {
-    const now = Date.now();
-    const data: ChartDataPoint[] = [];
+  // Load price history on mount
+  useEffect(() => {
+    const stored = getPriceHistory(marketId);
+    if (stored.length > 0) {
+      setPriceHistory(stored);
+      // Set last percentages from the most recent stored point
+      const lastPoint = stored[stored.length - 1];
+      lastPercentagesRef.current = options.map((_, i) =>
+        (lastPoint[`option${i}`] as number) || 0
+      );
+    }
+  }, [marketId]);
 
-    const periodConfig: Record<
-      TimePeriod,
-      {
-        points: number;
-        interval: number;
-        format: (d: Date) => string;
-        fullFormat: (d: Date) => string;
-      }
-    > = {
-      "5m": {
-        points: 30,
-        interval: 10 * 1000,
-        format: (d) =>
-          `${d.getMinutes()}:${d.getSeconds().toString().padStart(2, "0")}`,
-        fullFormat: (d) =>
-          d.toLocaleString("en-US", {
-            month: "short",
-            day: "numeric",
-            hour: "numeric",
-            minute: "2-digit",
-            hour12: true,
-          }),
-      },
-      "15m": {
-        points: 30,
-        interval: 30 * 1000,
-        format: (d) =>
-          `${d.getHours()}:${d.getMinutes().toString().padStart(2, "0")}`,
-        fullFormat: (d) =>
-          d.toLocaleString("en-US", {
-            month: "short",
-            day: "numeric",
-            hour: "numeric",
-            minute: "2-digit",
-            hour12: true,
-          }),
-      },
-      "1H": {
-        points: 24,
-        interval: 2.5 * 60 * 1000,
-        format: (d) =>
-          `${d.getHours()}:${d.getMinutes().toString().padStart(2, "0")}`,
-        fullFormat: (d) =>
-          d.toLocaleString("en-US", {
-            month: "short",
-            day: "numeric",
-            hour: "numeric",
-            minute: "2-digit",
-            hour12: true,
-          }),
-      },
-      "4H": {
-        points: 24,
-        interval: 10 * 60 * 1000,
-        format: (d) =>
-          `${d.getHours()}:${d.getMinutes().toString().padStart(2, "0")}`,
-        fullFormat: (d) =>
-          d.toLocaleString("en-US", {
-            month: "short",
-            day: "numeric",
-            hour: "numeric",
-            minute: "2-digit",
-            hour12: true,
-          }),
-      },
-      "1D": {
-        points: 24,
-        interval: 60 * 60 * 1000,
-        format: (d) => `${d.getHours()}:00`,
-        fullFormat: (d) =>
-          d.toLocaleString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-            hour: "numeric",
-            minute: "2-digit",
-            hour12: true,
-          }),
-      },
+  // Add new data point when percentages change
+  useEffect(() => {
+    const currentPercentages = options.map((opt) => opt.percentage);
+
+    // Check if percentages have changed
+    const lastPoint = priceHistory[priceHistory.length - 1];
+    if (!hasPercentageChanged(currentPercentages, lastPoint, options.length)) {
+      return;
+    }
+
+    // Create new data point
+    const now = new Date();
+    const newPoint: ChartDataPoint = {
+      time: `${now.getHours()}:${now.getMinutes().toString().padStart(2, "0")}`,
+      fullTime: now.toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      }),
+      timestamp: now.getTime(),
     };
 
-    const config = periodConfig[selectedPeriod];
+    options.forEach((opt, i) => {
+      newPoint[`option${i}`] = opt.percentage;
+    });
 
-    for (let i = config.points; i >= 0; i--) {
-      const timestamp = now - i * config.interval;
+    // Add to history (keep last 100 points max)
+    const updatedHistory = [...priceHistory, newPoint].slice(-100);
+    setPriceHistory(updatedHistory);
+    savePriceHistory(marketId, updatedHistory);
+    lastPercentagesRef.current = currentPercentages;
+  }, [options, marketId, priceHistory]);
+
+  // Filter chart data based on selected period
+  const chartData = useMemo(() => {
+    // Return empty data during SSR to avoid hydration mismatch
+    if (!isClient) {
+      return [];
+    }
+
+    const now = Date.now();
+
+    // Time ranges for each period (ALL = 30 days)
+    const periodRanges: Record<TimePeriod, number> = {
+      "1H": 60 * 60 * 1000,
+      "3H": 3 * 60 * 60 * 1000,
+      "24H": 24 * 60 * 60 * 1000,
+      "7D": 7 * 24 * 60 * 60 * 1000,
+      "ALL": 30 * 24 * 60 * 60 * 1000,
+    };
+
+    const timeRange = periodRanges[selectedPeriod];
+    const startTime = now - timeRange;
+
+    // Filter history based on selected time period
+    const filteredHistory = priceHistory.filter(
+      (point) => point.timestamp >= startTime
+    );
+
+    // Format time label based on period
+    const formatTimeLabel = (timestamp: number): string => {
       const date = new Date(timestamp);
+      if (selectedPeriod === "1H" || selectedPeriod === "3H") {
+        // Show time like "14:30"
+        return `${date.getHours()}:${date.getMinutes().toString().padStart(2, "0")}`;
+      } else if (selectedPeriod === "24H") {
+        // Show time like "14:00"
+        return `${date.getHours()}:00`;
+      } else {
+        // Show date like "DEC 18" for 7D and ALL
+        return date.toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase();
+      }
+    };
 
-      const point: ChartDataPoint = {
-        time: config.format(date),
-        fullTime: config.fullFormat(date),
-        timestamp,
-      };
-
-      options.forEach((opt, optIndex) => {
-        const variance =
-          Math.sin(i * 0.5 + optIndex) * 5 + Math.random() * 3 - 1.5;
-        const value = Math.max(
-          1,
-          Math.min(99, opt.percentage + variance * (i / config.points))
-        );
-        point[`option${optIndex}`] = Number(value.toFixed(1));
-      });
-
-      data.push(point);
+    // If we have stored history, use it
+    if (filteredHistory.length > 0) {
+      return filteredHistory.map((point) => ({
+        ...point,
+        time: formatTimeLabel(point.timestamp),
+      }));
     }
 
-    // Ensure the last point has the current percentages
-    if (data.length > 0) {
-      options.forEach((opt, optIndex) => {
-        data[data.length - 1][`option${optIndex}`] = opt.percentage;
-      });
-    }
+    // If no history yet, show a single point with current values
+    const currentPoint: ChartDataPoint = {
+      time: formatTimeLabel(now),
+      fullTime: new Date().toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      }),
+      timestamp: now,
+    };
 
-    return data;
-  }, [options, selectedPeriod]);
+    options.forEach((opt, i) => {
+      currentPoint[`option${i}`] = opt.percentage;
+    });
 
-  const periods: TimePeriod[] = ["5m", "15m", "1H", "4H", "1D"];
+    return [currentPoint];
+  }, [isClient, priceHistory, selectedPeriod, options]);
+
+  const periods: TimePeriod[] = ["1H", "3H", "24H", "7D", "ALL"];
 
   const toggleOption = (index: number) => {
     const newSelected = new Set(selectedOptions);
@@ -276,17 +279,16 @@ const PriceChart: React.FC<PriceChartProps> = ({
   };
 
   // Custom tooltip content renderer
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const renderTooltipContent = useCallback(
-    (props: any) => {
-      const { active, payload, coordinate, viewBox } = props;
+    (props: { active?: boolean; payload?: any[] }) => {
+      const { active, payload } = props;
       if (!active || !payload || !payload.length) return null;
-
-      const fullTime = payload[0]?.payload?.fullTime;
 
       return (
         <div className="relative">
           {/* Individual option labels positioned at their Y values */}
-          {payload.map((entry: any) => {
+          {payload.map((entry) => {
             const optionIndex = parseInt(entry.dataKey.replace("option", ""));
             if (!selectedOptions.has(optionIndex)) return null;
 
@@ -446,7 +448,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
                   key={index}
                   dataKey={`option${index}`}
                   name={opt.label}
-                  type="monotone"
+                  type="stepAfter"
                   stroke={colorInfo.color}
                   strokeWidth={2}
                   dot={false}
@@ -462,17 +464,30 @@ const PriceChart: React.FC<PriceChartProps> = ({
           </LineChart>
         </ChartContainer>
 
-        {/* Legend on right side like the mock */}
-        <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-2 text-xs">
+        {/* Legend labels on the chart like the mock */}
+        <div className="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col gap-3 text-xs pointer-events-none">
           {options.map((opt, index) => {
             if (!selectedOptions.has(index)) return null;
             const colorInfo = OPTION_COLORS[index % OPTION_COLORS.length];
+            // Position based on percentage value
+            const topOffset = 100 - opt.percentage;
             return (
-              <div key={index} className="flex items-center gap-2 text-right">
-                <span className="text-foreground/50 truncate max-w-[60px]">
-                  {opt.label}
-                </span>
-                <span className="font-bold" style={{ color: colorInfo.color }}>
+              <div
+                key={index}
+                className="flex items-center gap-1.5 px-2 py-1 rounded-md"
+                style={{
+                  backgroundColor: `${colorInfo.color}20`,
+                  position: 'absolute',
+                  right: 0,
+                  top: `${topOffset}%`,
+                  transform: 'translateY(-50%)',
+                }}
+              >
+                <div
+                  className="w-2 h-2 rounded-full"
+                  style={{ backgroundColor: colorInfo.color }}
+                />
+                <span style={{ color: colorInfo.color }} className="font-semibold">
                   {opt.percentage.toFixed(0)}%
                 </span>
               </div>

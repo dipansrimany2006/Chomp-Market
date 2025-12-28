@@ -488,6 +488,7 @@ export default function PredictionDetailPage() {
               label,
               percentage: odds[i] || 50,
             }))}
+            marketId={params.id as string}
             height={280}
             className="rounded-2xl"
           />

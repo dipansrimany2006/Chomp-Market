@@ -102,17 +102,13 @@ const DropdownPortal: React.FC<DropdownPortalProps> = ({
           key={index}
           onClick={(e) => onSelect(e, index)}
           className={cn(
-            'w-full px-4 py-3.5 text-sm text-left transition-colors flex items-center justify-between',
-            selectedOption === index
-              ? 'bg-primary/20 text-foreground'
-              : 'text-foreground hover:bg-muted'
+            'w-full px-4 py-3.5 text-sm text-left transition-all flex items-center justify-between text-white hover:opacity-90',
+            selectedOption === index && 'ring-2 ring-white/50'
           )}
+          style={{ backgroundColor: OPTION_COLORS[index % OPTION_COLORS.length].hex }}
         >
           <span className="truncate">{option}</span>
-          <span className={cn(
-            'text-sm font-medium ml-2',
-            selectedOption === index ? 'text-primary' : 'text-muted-foreground'
-          )}>{Math.round(odds[index])}%</span>
+          <span className="text-sm font-medium ml-2 text-white/80">{Math.round(odds[index])}%</span>
         </button>
       ))}
     </div>,
@@ -123,12 +119,17 @@ const DropdownPortal: React.FC<DropdownPortalProps> = ({
 const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, className }) => {
   const router = useRouter();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [selectedOption, setSelectedOption] = useState(0);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
   const options = prediction.options || ['Yes', 'No'];
   const odds = prediction.odds || options.map(() => 100 / options.length);
   const isYesNo = isYesNoMarket(options);
+
+  // Find the highest bought option (highest odds)
+  const highestBoughtIndex = odds.reduce((maxIdx, odd, idx, arr) =>
+    odd > arr[maxIdx] ? idx : maxIdx, 0);
+
+  const [selectedOption, setSelectedOption] = useState(highestBoughtIndex);
 
   // Calculate conviction (highest odds percentage)
   const conviction = Math.max(...odds);
@@ -336,9 +337,13 @@ const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, className }
             ref={buttonRef}
             type="button"
             onClick={handleDropdownToggle}
-            className="w-full py-3.5 px-4 rounded-xl text-sm font-semibold bg-muted text-foreground border border-border hover:bg-muted/80 transition-all flex items-center justify-between"
+            className="w-full py-3.5 px-4 rounded-xl text-sm font-semibold text-white border border-white/10 hover:opacity-90 transition-all flex items-center justify-between"
+            style={{ backgroundColor: OPTION_COLORS[selectedOption % OPTION_COLORS.length].hex }}
           >
-            <span className="truncate">{options[selectedOption]}</span>
+            <span className="flex items-center gap-2 truncate">
+              <span className="truncate">{options[selectedOption]}</span>
+              <span className="text-white/80 font-medium">{Math.round(odds[selectedOption])}%</span>
+            </span>
             <ChevronDown className={cn(
               'w-5 h-5 transition-transform shrink-0 ml-2',
               isDropdownOpen && 'rotate-180'
