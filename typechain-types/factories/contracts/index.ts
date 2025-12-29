@@ -4,6 +4,4 @@
 export * as predictionMarketSol from "./PredictionMarket.sol";
 export * as umaMarketResolverSol from "./UMAMarketResolver.sol";
 export * as interfaces from "./interfaces";
-export * as mocks from "./mocks";
-export { MockERC20__factory } from "./MockERC20__factory";
 export { PredictionMarketFactory__factory } from "./PredictionMarketFactory__factory";
