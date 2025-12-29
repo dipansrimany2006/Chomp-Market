@@ -11,6 +11,8 @@ export async function GET(request: NextRequest) {
     const creatorWalletAddress = searchParams.get('creatorWalletAddress');
     const limit = parseInt(searchParams.get('limit') || '20');
     const page = parseInt(searchParams.get('page') || '1');
+    const sortBy = searchParams.get('sortBy') || 'createdAt'; // createdAt, totalVolume
+    const sortOrder = searchParams.get('sortOrder') || 'desc'; // asc, desc
 
     await connectDB();
 
@@ -31,9 +33,15 @@ export async function GET(request: NextRequest) {
 
     const skip = (page - 1) * limit;
 
+    // Build sort object
+    const validSortFields = ['createdAt', 'totalVolume', 'pollEnd'];
+    const sortField = validSortFields.includes(sortBy) ? sortBy : 'createdAt';
+    const sortDirection = sortOrder === 'asc' ? 1 : -1;
+    const sort: Record<string, 1 | -1> = { [sortField]: sortDirection };
+
     const [polls, total] = await Promise.all([
       Poll.find(query)
-        .sort({ createdAt: -1 })
+        .sort(sort)
         .skip(skip)
         .limit(limit)
         .lean(),
