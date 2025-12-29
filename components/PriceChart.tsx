@@ -281,7 +281,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
   // Custom tooltip content renderer
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const renderTooltipContent = useCallback(
-    (props: { active?: boolean; payload?: any[] }) => {
+    (props: { active?: boolean; payload?: readonly any[] }) => {
       const { active, payload } = props;
       if (!active || !payload || !payload.length) return null;
 
