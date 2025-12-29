@@ -7,7 +7,4 @@ import type * as umaMarketResolverSol from "./UMAMarketResolver.sol";
 export type { umaMarketResolverSol };
 import type * as interfaces from "./interfaces";
 export type { interfaces };
-import type * as mocks from "./mocks";
-export type { mocks };
-export type { MockERC20 } from "./MockERC20";
 export type { PredictionMarketFactory } from "./PredictionMarketFactory";
