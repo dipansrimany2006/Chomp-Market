@@ -18,8 +18,6 @@ export type { IOptimisticOracleV2 } from "./contracts/interfaces/IOptimisticOrac
 export { IOptimisticOracleV2__factory } from "./factories/contracts/interfaces/IOptimisticOracleV2__factory";
 export type { MockERC20 } from "./contracts/MockERC20";
 export { MockERC20__factory } from "./factories/contracts/MockERC20__factory";
-export type { MockOptimisticOracle } from "./contracts/mocks/MockOptimisticOracle";
-export { MockOptimisticOracle__factory } from "./factories/contracts/mocks/MockOptimisticOracle__factory";
 export type { PredictionMarket } from "./contracts/PredictionMarket.sol/PredictionMarket";
 export { PredictionMarket__factory } from "./factories/contracts/PredictionMarket.sol/PredictionMarket__factory";
 export type { PredictionMarketFactory } from "./contracts/PredictionMarketFactory";
