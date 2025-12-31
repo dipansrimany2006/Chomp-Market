@@ -38,7 +38,7 @@ export default function RootLayout({
               <StarsBackground />
             </div>
             <div className="relative z-10 flex flex-col items-center">
-              <div className="sticky top-0 z-50 w-full flex justify-center bg-background/80 backdrop-blur-md border-b border-border">
+              <div className="sticky top-0 z-50 w-full flex justify-center bg-black border-b border-border">
                 <div className="w-[80%]">
                   <Navbar />
                 </div>

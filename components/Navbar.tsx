@@ -97,7 +97,7 @@ const Navbar = () => {
 
   return (
     <>
-      <div className="h-16 w-full backdrop-blur-lg text-foreground flex items-center justify-between px-6 m-4">
+      <div className="h-16 w-full bg-black text-foreground flex items-center justify-between px-6 m-4">
         {/* Logo */}
         <div className="flex items-center">
           <Image
@@ -141,13 +141,6 @@ const Navbar = () => {
 
         {/* Right Section */}
         <div className="flex items-center gap-4">
-          {/* How it works button */}
-          <button
-            type="button"
-            className="text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
-          >
-            How it works
-          </button>
 
           {/* Create Market Button */}
           <Link
