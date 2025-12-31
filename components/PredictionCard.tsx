@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { ChevronDown, BarChart3, Clock, Sparkles } from 'lucide-react';
 import { Prediction } from '@/lib/predictions';
+import TradingModal from './OptionsModal';
 
 // Color palette for multiple options
 const OPTION_COLORS = [
@@ -119,6 +120,8 @@ const DropdownPortal: React.FC<DropdownPortalProps> = ({
 const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, className }) => {
   const router = useRouter();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalOptionIndex, setModalOptionIndex] = useState(0);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
   const options = prediction.options || ['Yes', 'No'];
@@ -159,19 +162,23 @@ const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, className }
 
   const handleOptionClick = (e: React.MouseEvent, index: number) => {
     e.stopPropagation();
-    router.push(`/prediction/${prediction.id}?option=${index}`);
+    setModalOptionIndex(index);
+    setIsModalOpen(true);
   };
 
   const handleDropdownToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsDropdownOpen(!isDropdownOpen);
+    // Open modal directly with selected option instead of dropdown
+    setModalOptionIndex(selectedOption);
+    setIsModalOpen(true);
   };
 
   const handleOptionSelect = (e: React.MouseEvent, index: number) => {
     e.stopPropagation();
     setSelectedOption(index);
     setIsDropdownOpen(false);
-    router.push(`/prediction/${prediction.id}?option=${index}`);
+    setModalOptionIndex(index);
+    setIsModalOpen(true);
   };
 
   // Close dropdown when clicking outside
@@ -360,6 +367,16 @@ const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, className }
           />
         </div>
       )}
+
+      {/* Option Modal */}
+      <div onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
+        <TradingModal
+          prediction={prediction}
+          open={isModalOpen}
+          onOpenChange={setIsModalOpen}
+          initialOptionIndex={modalOptionIndex}
+        />
+      </div>
     </div>
   );
 };
