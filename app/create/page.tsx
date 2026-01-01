@@ -116,8 +116,6 @@ export default function CreateMarketPage() {
       newErrors.title = 'Question is required';
     } else if (formData.title.length < 10) {
       newErrors.title = 'Question must be at least 10 characters';
-    } else if (!formData.title.includes('?')) {
-      newErrors.title = 'Question should end with a question mark';
     }
 
     if (!formData.description.trim()) {
