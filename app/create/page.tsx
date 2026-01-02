@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { usePrivy } from '@privy-io/react-auth';
 import {
   ArrowLeft,
+  ArrowRight,
   AlertCircle,
   ChevronDown,
   Loader2,
@@ -24,10 +25,10 @@ interface FormData {
   title: string;
   description: string;
   category: string;
-  endDateTime: Date | undefined; // Date object for calendar picker
+  endDateTime: Date | undefined;
   resolutionSource: string;
   image: string;
-  options: string[]; // Custom options (2-4)
+  options: string[];
 }
 
 interface FormErrors {
@@ -39,10 +40,20 @@ interface FormErrors {
   options?: string;
 }
 
+const STEPS = [
+  { id: 1, title: 'Question' },
+  { id: 2, title: 'Options' },
+  { id: 3, title: 'Resolution' },
+  { id: 4, title: 'Details' },
+  { id: 5, title: 'Review' },
+];
+
 export default function CreateMarketPage() {
   const router = useRouter();
   const { authenticated, login, user } = usePrivy();
   const { createMarket, isLoading: isContractLoading, error: contractError } = useFactory();
+
+  const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [categoryOpen, setCategoryOpen] = useState(false);
@@ -61,10 +72,9 @@ export default function CreateMarketPage() {
     endDateTime: undefined,
     resolutionSource: '',
     image: '',
-    options: ['', ''], // Start with 2 empty options
+    options: ['', ''],
   });
   const [imagePreview, setImagePreview] = useState<string>('');
-
   const [errors, setErrors] = useState<FormErrors>({});
 
   // Fetch categories from API
@@ -109,68 +119,85 @@ export default function CreateMarketPage() {
     return () => clearInterval(interval);
   }, []);
 
-  const validateForm = (): boolean => {
+  const validateStep = (step: number): boolean => {
     const newErrors: FormErrors = {};
 
-    if (!formData.title.trim()) {
-      newErrors.title = 'Question is required';
-    } else if (formData.title.length < 10) {
-      newErrors.title = 'Question must be at least 10 characters';
-    }
+    switch (step) {
+      case 1: // Question & Image
+        if (!formData.title.trim()) {
+          newErrors.title = 'Question is required';
+        } else if (formData.title.length < 10) {
+          newErrors.title = 'Question must be at least 10 characters';
+        }
+        if (!formData.image) {
+          newErrors.image = 'Please upload an image for your market';
+        }
+        break;
 
-    if (!formData.description.trim()) {
-      newErrors.description = 'Resolution criteria is required';
-    } else if (formData.description.length < 20) {
-      newErrors.description = 'Resolution criteria must be at least 20 characters';
-    }
+      case 2: // Options
+        if (formData.options.length < 2 || formData.options.length > 4) {
+          newErrors.options = 'Must have 2-4 options';
+        } else {
+          const trimmedOptions = formData.options.map(o => o.trim());
+          const hasEmpty = trimmedOptions.some(o => o.length === 0);
+          const nonEmptyOptions = trimmedOptions.filter(o => o.length > 0);
+          const hasDuplicates = new Set(nonEmptyOptions.map(o => o.toLowerCase())).size !== nonEmptyOptions.length;
 
-    if (!formData.category) {
-      newErrors.category = 'Please select a category';
-    }
+          if (hasEmpty) {
+            newErrors.options = 'All options must have labels';
+          } else if (hasDuplicates) {
+            newErrors.options = 'Option labels must be unique';
+          }
+        }
+        break;
 
-    if (!formData.endDateTime) {
-      newErrors.endDateTime = 'End date and time is required';
-    } else {
-      // Compare with current time
-      const now = new Date();
-      if (formData.endDateTime <= now) {
-        newErrors.endDateTime = 'End date/time must be in the future';
-      }
-    }
+      case 3: // Resolution
+        if (!formData.description.trim()) {
+          newErrors.description = 'Resolution criteria is required';
+        } else if (formData.description.length < 20) {
+          newErrors.description = 'Resolution criteria must be at least 20 characters';
+        }
+        break;
 
-    if (!formData.image) {
-      newErrors.image = 'Please upload an image for your market';
-    }
-
-    // Options validation
-    if (formData.options.length < 2 || formData.options.length > 4) {
-      newErrors.options = 'Must have 2-4 options';
-    } else {
-      const trimmedOptions = formData.options.map(o => o.trim());
-      const hasEmpty = trimmedOptions.some(o => o.length === 0);
-      const nonEmptyOptions = trimmedOptions.filter(o => o.length > 0);
-      const hasDuplicates = new Set(nonEmptyOptions.map(o => o.toLowerCase())).size !== nonEmptyOptions.length;
-
-      if (hasEmpty) {
-        newErrors.options = 'All options must have labels';
-      } else if (hasDuplicates) {
-        newErrors.options = 'Option labels must be unique';
-      }
+      case 4: // Category & Timing
+        if (!formData.category) {
+          newErrors.category = 'Please select a category';
+        }
+        if (!formData.endDateTime) {
+          newErrors.endDateTime = 'End date and time is required';
+        } else {
+          const now = new Date();
+          if (formData.endDateTime <= now) {
+            newErrors.endDateTime = 'End date/time must be in the future';
+          }
+        }
+        break;
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleNext = () => {
+    if (validateStep(currentStep)) {
+      setCurrentStep((prev) => Math.min(prev + 1, STEPS.length));
+    }
+  };
 
+  const handleBack = () => {
+    setCurrentStep((prev) => Math.max(prev - 1, 1));
+  };
+
+  const goToStep = (step: number) => {
+    // Only allow going to previous steps or current step
+    if (step <= currentStep) {
+      setCurrentStep(step);
+    }
+  };
+
+  const handleSubmit = async () => {
     if (!authenticated) {
       login();
-      return;
-    }
-
-    if (!validateForm()) {
       return;
     }
 
@@ -182,14 +209,11 @@ export default function CreateMarketPage() {
     setTxStatus('deploying');
 
     try {
-      // Step 1: Deploy market on-chain
       if (!formData.endDateTime) {
         throw new Error('End date/time is required');
       }
 
-      // Trim options before sending
       const trimmedOptions = formData.options.map(o => o.trim());
-
       const newMarketAddress = await createMarket(formData.title, formData.endDateTime, trimmedOptions);
 
       if (!newMarketAddress) {
@@ -199,7 +223,6 @@ export default function CreateMarketPage() {
       setMarketAddress(newMarketAddress);
       setTxStatus('saving');
 
-      // Step 2: Save metadata to MongoDB
       const response = await fetch('/api/poll', {
         method: 'POST',
         headers: {
@@ -213,8 +236,8 @@ export default function CreateMarketPage() {
           resolutionSource: formData.resolutionSource || undefined,
           pollEnd: formData.endDateTime.toISOString(),
           image: formData.image,
-          contractAddress: newMarketAddress, // Link to on-chain market
-          options: trimmedOptions, // Custom options
+          contractAddress: newMarketAddress,
+          options: trimmedOptions,
         }),
       });
 
@@ -227,7 +250,6 @@ export default function CreateMarketPage() {
       setTxStatus('done');
       setIsSuccess(true);
 
-      // Redirect after success
       setTimeout(() => {
         router.push('/');
       }, 3000);
@@ -245,7 +267,6 @@ export default function CreateMarketPage() {
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    // Clear error when user starts typing
     if (errors[name as keyof FormErrors]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
@@ -283,7 +304,6 @@ export default function CreateMarketPage() {
 
       const data = await response.json();
       if (data.success) {
-        // Add to categories list if not already there
         if (!categories.includes(data.category)) {
           setCategories((prev) => [...prev, data.category].sort());
         }
@@ -308,13 +328,11 @@ export default function CreateMarketPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       setErrors((prev) => ({ ...prev, image: 'Please upload a valid image file' }));
       return;
     }
 
-    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       setErrors((prev) => ({ ...prev, image: 'Image must be less than 5MB' }));
       return;
@@ -337,17 +355,18 @@ export default function CreateMarketPage() {
     setImagePreview('');
   };
 
+  // Success screen
   if (isSuccess) {
     return (
-      <div className="min-h-[80vh] flex flex-col items-center justify-center">
-        <div className="text-center">
-          <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-6">
-            <CheckCircle className="h-10 w-10 text-primary" />
+      <div className="min-h-[80vh] flex flex-col items-center justify-center px-4">
+        <div className="text-center max-w-md">
+          <div className="w-24 h-24 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-6 animate-pulse">
+            <CheckCircle className="h-12 w-12 text-green-500" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground mb-2">Market Created!</h1>
-          <p className="text-muted-foreground mb-4">Your prediction market is now live on Mantle Sepolia.</p>
+          <h1 className="text-3xl font-bold text-foreground mb-3">Market Created!</h1>
+          <p className="text-muted-foreground mb-6">Your prediction market is now live on Mantle Sepolia.</p>
           {marketAddress && (
-            <div className="mb-6">
+            <div className="mb-6 p-4 rounded-xl bg-card border border-border">
               <p className="text-muted-foreground text-xs mb-2">Contract Address</p>
               <a
                 href={`${MANTLE_SEPOLIA.blockExplorer}/address/${marketAddress}`}
@@ -359,273 +378,360 @@ export default function CreateMarketPage() {
               </a>
             </div>
           )}
-          <p className="text-muted-foreground text-sm">Redirecting to home...</p>
+          <p className="text-muted-foreground text-sm animate-pulse">Redirecting to home...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="w-[80%] max-w-3xl flex flex-col py-6">
-        {/* Header Navigation */}
-        <div className="flex items-center justify-between mb-8">
-          <button
-            onClick={() => router.push('/')}
-            className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="h-5 w-5" />
-            <span className="text-sm font-medium">Back to Markets</span>
-          </button>
-        </div>
+    <div className="w-full max-w-4xl mx-auto px-4 py-8">
+      {/* Header */}
+      <div className="mb-8">
+        <button
+          onClick={() => currentStep === 1 ? router.push('/') : handleBack()}
+          className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="h-5 w-5" />
+          <span className="text-sm font-medium">
+            {currentStep === 1 ? 'Back to Markets' : 'Previous Step'}
+          </span>
+        </button>
+      </div>
 
-        {/* Page Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Create a Market</h1>
-          <p className="text-muted-foreground">
-            Create a prediction market and let the crowd forecast the outcome.
-          </p>
-        </div>
+      {/* Step Indicators */}
+      <div className="flex justify-center mb-10">
+        <div className="flex items-center gap-3">
+          {STEPS.map((step, index) => {
+            const isActive = step.id === currentStep;
+            const isCompleted = step.id < currentStep;
+            const isClickable = step.id <= currentStep;
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Question Input */}
-          <div className="rounded-2xl border border-border bg-card/40 backdrop-blur-xl p-6">
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Question <span className="text-muted-foreground">*</span>
-            </label>
-            <input
-              type="text"
-              name="title"
-              value={formData.title}
-              onChange={handleInputChange}
-              placeholder="Will Bitcoin reach $200,000 by the end of 2025?"
-              className={cn(
-                'w-full bg-muted border rounded-xl px-4 py-3 text-foreground placeholder-muted-foreground focus:outline-none transition-colors',
-                errors.title
-                  ? 'border-primary focus:border-primary'
-                  : 'border-border focus:border-primary/40'
-              )}
-            />
-            {errors.title && (
-              <p className="mt-2 text-sm text-muted-foreground flex items-center gap-1">
-                <AlertCircle className="h-4 w-4" />
-                {errors.title}
-              </p>
-            )}
-            <p className="mt-2 text-xs text-muted-foreground">
-              Ask a clear yes/no question about a future event.
-            </p>
-          </div>
-
-          {/* Image Upload */}
-          <div className="rounded-2xl border border-border bg-card/40 backdrop-blur-xl p-6">
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Market Image <span className="text-muted-foreground">*</span>
-            </label>
-
-            {imagePreview ? (
-              <div className="relative">
-                <img
-                  src={imagePreview}
-                  alt="Market preview"
-                  className="w-full h-48 object-cover rounded-xl border border-border"
-                />
+            return (
+              <div key={step.id} className="flex items-center">
                 <button
-                  type="button"
-                  onClick={removeImage}
-                  title="Remove image"
-                  className="absolute top-2 right-2 p-1.5 rounded-full bg-card/70 hover:bg-card/90 transition-colors"
+                  onClick={() => goToStep(step.id)}
+                  disabled={!isClickable}
+                  className={cn(
+                    'w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-200',
+                    isActive && 'bg-primary text-primary-foreground scale-110',
+                    isCompleted && 'bg-green-500 text-white',
+                    !isActive && !isCompleted && 'bg-muted text-muted-foreground',
+                    isClickable ? 'cursor-pointer hover:opacity-80' : 'cursor-not-allowed'
+                  )}
                 >
-                  <X className="h-4 w-4 text-foreground" />
+                  {isCompleted ? (
+                    <CheckCircle className="h-4 w-4" />
+                  ) : (
+                    step.id
+                  )}
                 </button>
-              </div>
-            ) : (
-              <label
-                className={cn(
-                  'flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-xl cursor-pointer transition-colors',
-                  errors.image
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border bg-muted/30 hover:bg-muted/50 hover:border-border'
-                )}
-              >
-                <div className="flex flex-col items-center justify-center py-6">
-                  <ImagePlus className="h-10 w-10 text-muted-foreground mb-3" />
-                  <p className="text-sm text-muted-foreground mb-1">
-                    Click to upload an image
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    PNG, JPG, GIF up to 5MB
-                  </p>
-                </div>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                />
-              </label>
-            )}
-
-            {errors.image && (
-              <p className="mt-2 text-sm text-muted-foreground flex items-center gap-1">
-                <AlertCircle className="h-4 w-4" />
-                {errors.image}
-              </p>
-            )}
-            <p className="mt-2 text-xs text-muted-foreground">
-              Upload an image that represents your market question.
-            </p>
-          </div>
-
-          {/* Custom Options */}
-          <div className="rounded-2xl border border-border bg-card/40 backdrop-blur-xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <label className="block text-sm font-medium text-foreground">
-                Market Options <span className="text-muted-foreground">*</span>
-              </label>
-              <span className="text-xs text-muted-foreground">
-                {formData.options.length}/4 options
-              </span>
-            </div>
-
-            <div className="space-y-3">
-              {formData.options.map((option, index) => (
-                <div key={index} className="flex gap-2">
-                  <div className="flex-shrink-0 w-8 h-11 rounded-lg bg-muted flex items-center justify-center">
-                    <span className="text-muted-foreground text-sm font-medium">{index + 1}</span>
-                  </div>
-                  <input
-                    type="text"
-                    value={option}
-                    onChange={(e) => {
-                      const newOptions = [...formData.options];
-                      newOptions[index] = e.target.value;
-                      setFormData(prev => ({ ...prev, options: newOptions }));
-                      if (errors.options) {
-                        setErrors(prev => ({ ...prev, options: undefined }));
-                      }
-                    }}
-                    placeholder={`Option ${index + 1}`}
+                {index < STEPS.length - 1 && (
+                  <div
                     className={cn(
-                      'flex-1 bg-muted border rounded-xl px-4 py-2.5 text-foreground placeholder-muted-foreground focus:outline-none transition-colors',
-                      errors.options
-                        ? 'border-primary focus:border-primary'
-                        : 'border-border focus:border-primary/40'
+                      'w-8 h-0.5 ml-3',
+                      step.id < currentStep ? 'bg-green-500' : 'bg-border'
                     )}
                   />
-                  {/* Remove button (only show if more than 2 options) */}
-                  {formData.options.length > 2 && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const newOptions = formData.options.filter((_, i) => i !== index);
-                        setFormData(prev => ({ ...prev, options: newOptions }));
-                      }}
-                      className="p-2.5 rounded-lg bg-muted border border-border text-muted-foreground hover:bg-muted/80 transition-colors"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
-              ))}
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Step Content */}
+      <div className="min-h-[400px]">
+        {/* Step 1: Question & Image */}
+        {currentStep === 1 && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-bold text-foreground">What's your prediction?</h2>
             </div>
 
-            {/* Add Option Button */}
-            {formData.options.length < 4 && (
-              <button
-                type="button"
-                onClick={() => {
-                  setFormData(prev => ({
-                    ...prev,
-                    options: [...prev.options, '']
-                  }));
-                }}
-                className="mt-3 w-full py-2.5 rounded-lg border border-dashed border-border text-muted-foreground hover:border-primary/40 hover:text-foreground transition-colors flex items-center justify-center gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Add Option
-              </button>
-            )}
-
-            {errors.options && (
-              <p className="mt-2 text-sm text-muted-foreground flex items-center gap-1">
-                <AlertCircle className="h-4 w-4" />
-                {errors.options}
-              </p>
-            )}
-
-            <p className="mt-2 text-xs text-muted-foreground">
-              Define 2-4 custom outcomes for your market. Multiple options can win when resolved.
-            </p>
-          </div>
-
-          {/* Resolution Criteria */}
-          <div className="rounded-2xl border border-border bg-card/40 backdrop-blur-xl p-6">
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Resolution Criteria <span className="text-muted-foreground">*</span>
-            </label>
-            <textarea
-              name="description"
-              value={formData.description}
-              onChange={handleInputChange}
-              rows={4}
-              placeholder="This market resolves to YES if Bitcoin (BTC) reaches or exceeds $200,000 USD on any major exchange (Coinbase, Binance, Kraken) before December 31, 2025 11:59 PM ET. The price must be sustained for at least 1 minute."
-              className={cn(
-                'w-full bg-muted border rounded-xl px-4 py-3 text-foreground placeholder-muted-foreground focus:outline-none transition-colors resize-none',
-                errors.description
-                  ? 'border-primary focus:border-primary'
-                  : 'border-border focus:border-primary/40'
+            {/* Question Input */}
+            <div className="rounded-2xl border border-border bg-card/40 backdrop-blur-xl p-6">
+              <label className="block text-sm font-medium text-foreground mb-3">
+                Market Question
+              </label>
+              <input
+                type="text"
+                name="title"
+                value={formData.title}
+                onChange={handleInputChange}
+                placeholder="Will Bitcoin reach $200,000 by the end of 2025?"
+                className={cn(
+                  'w-full bg-muted border rounded-xl px-4 py-4 text-lg text-foreground placeholder-muted-foreground focus:outline-none transition-colors',
+                  errors.title
+                    ? 'border-red-500 focus:border-red-500'
+                    : 'border-border focus:border-primary'
+                )}
+              />
+              {errors.title && (
+                <p className="mt-2 text-sm text-red-400 flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4" />
+                  {errors.title}
+                </p>
               )}
-            />
-            {errors.description && (
-              <p className="mt-2 text-sm text-muted-foreground flex items-center gap-1">
-                <AlertCircle className="h-4 w-4" />
-                {errors.description}
+              <p className="mt-3 text-sm text-muted-foreground">
+                Ask a clear question about a future event.
               </p>
-            )}
-            <p className="mt-2 text-xs text-muted-foreground">
-              Define exactly how this market will be resolved. Be specific about sources and conditions.
-            </p>
-          </div>
+            </div>
 
-          {/* Category and End Date Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 overflow-visible">
+            {/* Image Upload */}
+            <div className="rounded-2xl border border-border bg-card/40 backdrop-blur-xl p-6">
+              <label className="block text-sm font-medium text-foreground mb-3">
+                Market Image
+              </label>
+
+              {imagePreview ? (
+                <div className="relative group">
+                  <img
+                    src={imagePreview}
+                    alt="Market preview"
+                    className="w-full h-56 object-cover rounded-xl border border-border"
+                  />
+                  <button
+                    type="button"
+                    onClick={removeImage}
+                    title="Remove image"
+                    className="absolute top-3 right-3 p-2 rounded-full bg-black/60 hover:bg-black/80 transition-colors opacity-0 group-hover:opacity-100"
+                  >
+                    <X className="h-4 w-4 text-white" />
+                  </button>
+                </div>
+              ) : (
+                <label
+                  className={cn(
+                    'flex flex-col items-center justify-center w-full h-56 border-2 border-dashed rounded-xl cursor-pointer transition-all hover:scale-[1.01]',
+                    errors.image
+                      ? 'border-red-500 bg-red-500/5'
+                      : 'border-border bg-muted/30 hover:bg-muted/50 hover:border-primary/50'
+                  )}
+                >
+                  <div className="flex flex-col items-center justify-center py-6">
+                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                      <ImagePlus className="h-8 w-8 text-primary" />
+                    </div>
+                    <p className="text-base text-foreground font-medium mb-1">
+                      Click to upload an image
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      PNG, JPG, GIF up to 5MB
+                    </p>
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                </label>
+              )}
+
+              {errors.image && (
+                <p className="mt-2 text-sm text-red-400 flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4" />
+                  {errors.image}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Step 2: Options */}
+        {currentStep === 2 && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-bold text-foreground mb-2">Define the outcomes</h2>
+              <p className="text-muted-foreground">
+                Create 2-4 possible outcomes for your prediction market.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-card/40 backdrop-blur-xl p-6">
+              <div className="flex items-center justify-between mb-6">
+                <label className="block text-sm font-medium text-foreground">
+                  Market Options
+                </label>
+                <span className="text-sm text-muted-foreground px-3 py-1 rounded-full bg-muted">
+                  {formData.options.length}/4 options
+                </span>
+              </div>
+
+              <div className="space-y-4">
+                {formData.options.map((option, index) => (
+                  <div key={index} className="flex gap-3 items-center">
+                    <div className="flex-shrink-0 w-10 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <span className="text-primary font-semibold">{index + 1}</span>
+                    </div>
+                    <input
+                      type="text"
+                      value={option}
+                      onChange={(e) => {
+                        const newOptions = [...formData.options];
+                        newOptions[index] = e.target.value;
+                        setFormData(prev => ({ ...prev, options: newOptions }));
+                        if (errors.options) {
+                          setErrors(prev => ({ ...prev, options: undefined }));
+                        }
+                      }}
+                      placeholder={`Option ${index + 1} (e.g., ${index === 0 ? 'Yes' : index === 1 ? 'No' : 'Maybe'})`}
+                      className={cn(
+                        'flex-1 bg-muted border rounded-xl px-4 py-3 text-foreground placeholder-muted-foreground focus:outline-none transition-colors',
+                        errors.options
+                          ? 'border-red-500 focus:border-red-500'
+                          : 'border-border focus:border-primary'
+                      )}
+                    />
+                    {formData.options.length > 2 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newOptions = formData.options.filter((_, i) => i !== index);
+                          setFormData(prev => ({ ...prev, options: newOptions }));
+                        }}
+                        className="p-3 rounded-lg bg-muted border border-border text-muted-foreground hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-400 transition-colors"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {formData.options.length < 4 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFormData(prev => ({
+                      ...prev,
+                      options: [...prev.options, '']
+                    }));
+                  }}
+                  className="mt-4 w-full py-3 rounded-xl border-2 border-dashed border-border text-muted-foreground hover:border-primary hover:text-primary transition-colors flex items-center justify-center gap-2"
+                >
+                  <Plus className="h-5 w-5" />
+                  Add Another Option
+                </button>
+              )}
+
+              {errors.options && (
+                <p className="mt-4 text-sm text-red-400 flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4" />
+                  {errors.options}
+                </p>
+              )}
+
+              <p className="mt-4 text-sm text-muted-foreground">
+                Multiple options can win when resolved. Users will bet on their predicted outcomes.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: Resolution */}
+        {currentStep === 3 && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-bold text-foreground mb-2">How will it be resolved?</h2>
+              <p className="text-muted-foreground">
+                Define clear criteria for determining the outcome.
+              </p>
+            </div>
+
+            {/* Resolution Criteria */}
+            <div className="rounded-2xl border border-border bg-card/40 backdrop-blur-xl p-6">
+              <label className="block text-sm font-medium text-foreground mb-3">
+                Resolution Criteria
+              </label>
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                rows={5}
+                placeholder="This market resolves to YES if Bitcoin (BTC) reaches or exceeds $200,000 USD on any major exchange (Coinbase, Binance, Kraken) before December 31, 2025 11:59 PM ET. The price must be sustained for at least 1 minute."
+                className={cn(
+                  'w-full bg-muted border rounded-xl px-4 py-4 text-foreground placeholder-muted-foreground focus:outline-none transition-colors resize-none',
+                  errors.description
+                    ? 'border-red-500 focus:border-red-500'
+                    : 'border-border focus:border-primary'
+                )}
+              />
+              {errors.description && (
+                <p className="mt-2 text-sm text-red-400 flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4" />
+                  {errors.description}
+                </p>
+              )}
+              <p className="mt-3 text-sm text-muted-foreground">
+                Be specific about sources, conditions, and edge cases.
+              </p>
+            </div>
+
+            {/* Resolution Source (Optional) */}
+            <div className="rounded-2xl border border-border bg-card/40 backdrop-blur-xl p-6">
+              <label className="block text-sm font-medium text-foreground mb-3">
+                Resolution Source <span className="text-muted-foreground font-normal">(Optional)</span>
+              </label>
+              <input
+                type="text"
+                name="resolutionSource"
+                value={formData.resolutionSource}
+                onChange={handleInputChange}
+                placeholder="e.g., https://coinmarketcap.com, Official announcement, etc."
+                className="w-full bg-muted border border-border rounded-xl px-4 py-4 text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary transition-colors"
+              />
+              <p className="mt-3 text-sm text-muted-foreground">
+                Specify the official source that will be used to determine the outcome.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Step 4: Category & Timing */}
+        {currentStep === 4 && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-bold text-foreground mb-2">Final details</h2>
+              <p className="text-muted-foreground">
+                Choose a category and set when betting closes.
+              </p>
+            </div>
+
             {/* Category */}
             <div className={cn(
-                "rounded-2xl border border-border bg-card/40 backdrop-blur-xl p-6 relative overflow-visible",
-                categoryOpen && "z-50"
-              )}>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Category <span className="text-muted-foreground">*</span>
+              "rounded-2xl border border-border bg-card/40 backdrop-blur-xl p-6 relative",
+              categoryOpen && "z-50"
+            )}>
+              <label className="block text-sm font-medium text-foreground mb-3">
+                Category
               </label>
 
               {isCreatingNewCategory ? (
-                /* New Category Input Mode */
-                <div className="space-y-3">
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={newCategoryName}
-                      onChange={(e) => setNewCategoryName(e.target.value)}
-                      placeholder="Enter new category name"
-                      className="flex-1 bg-muted border border-border rounded-xl px-4 py-3 text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary/50 transition-colors"
-                      autoFocus
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handleCreateCategory();
-                        } else if (e.key === 'Escape') {
-                          cancelNewCategory();
-                        }
-                      }}
-                    />
-                  </div>
-                  <div className="flex gap-2">
+                <div className="space-y-4">
+                  <input
+                    type="text"
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    placeholder="Enter new category name"
+                    className="w-full bg-muted border border-border rounded-xl px-4 py-4 text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary transition-colors"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleCreateCategory();
+                      } else if (e.key === 'Escape') {
+                        cancelNewCategory();
+                      }
+                    }}
+                  />
+                  <div className="flex gap-3">
                     <button
                       type="button"
                       onClick={handleCreateCategory}
                       disabled={!newCategoryName.trim()}
-                      className="flex-1 py-2 rounded-lg bg-primary/20 border border-primary/30 text-foreground hover:bg-primary/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
                       <Plus className="h-4 w-4" />
                       Create Category
@@ -633,24 +739,23 @@ export default function CreateMarketPage() {
                     <button
                       type="button"
                       onClick={cancelNewCategory}
-                      className="px-4 py-2 rounded-lg bg-muted border border-border text-muted-foreground hover:bg-muted/80 transition-colors"
+                      className="px-6 py-3 rounded-xl bg-muted border border-border text-muted-foreground hover:text-foreground transition-colors"
                     >
                       Cancel
                     </button>
                   </div>
                 </div>
               ) : (
-                /* Category Dropdown */
                 <div className="relative">
                   <button
                     type="button"
                     onClick={() => setCategoryOpen(!categoryOpen)}
                     disabled={isLoadingCategories}
                     className={cn(
-                      'w-full bg-muted border rounded-xl px-4 py-3 text-left flex items-center justify-between transition-colors',
+                      'w-full bg-muted border rounded-xl px-4 py-4 text-left flex items-center justify-between transition-colors',
                       errors.category
-                        ? 'border-primary'
-                        : 'border-border hover:border-primary/40',
+                        ? 'border-red-500'
+                        : 'border-border hover:border-primary',
                       formData.category ? 'text-foreground' : 'text-muted-foreground'
                     )}
                   >
@@ -664,26 +769,25 @@ export default function CreateMarketPage() {
                     )}
                     <ChevronDown
                       className={cn(
-                        'h-4 w-4 text-muted-foreground transition-transform',
+                        'h-5 w-5 text-muted-foreground transition-transform',
                         categoryOpen && 'rotate-180'
                       )}
                     />
                   </button>
 
                   {categoryOpen && (
-                    <div className="absolute top-full left-0 right-0 mt-2 bg-card/95 border border-border rounded-xl max-h-60 overflow-y-auto z-50">
-                      {/* Create New Category Option */}
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border rounded-xl max-h-60 overflow-y-auto z-50 shadow-xl">
                       <button
                         type="button"
                         onClick={() => handleCategorySelect('__create_new__')}
-                        className="w-full px-4 py-2.5 text-left text-sm transition-colors text-foreground hover:bg-muted border-b border-border flex items-center gap-2"
+                        className="w-full px-4 py-3 text-left text-sm transition-colors text-primary hover:bg-primary/10 border-b border-border flex items-center gap-2 font-medium"
                       >
                         <Plus className="h-4 w-4" />
                         Create new category
                       </button>
 
                       {categories.length === 0 ? (
-                        <div className="px-4 py-3 text-sm text-muted-foreground text-center">
+                        <div className="px-4 py-4 text-sm text-muted-foreground text-center">
                           No categories yet. Create one!
                         </div>
                       ) : (
@@ -693,9 +797,9 @@ export default function CreateMarketPage() {
                             type="button"
                             onClick={() => handleCategorySelect(category)}
                             className={cn(
-                              'w-full px-4 py-2.5 text-left text-sm transition-colors',
+                              'w-full px-4 py-3 text-left text-sm transition-colors',
                               formData.category === category
-                                ? 'bg-primary/10 text-foreground'
+                                ? 'bg-primary/10 text-foreground font-medium'
                                 : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                             )}
                           >
@@ -709,7 +813,7 @@ export default function CreateMarketPage() {
               )}
 
               {errors.category && (
-                <p className="mt-2 text-sm text-muted-foreground flex items-center gap-1">
+                <p className="mt-2 text-sm text-red-400 flex items-center gap-1">
                   <AlertCircle className="h-4 w-4" />
                   {errors.category}
                 </p>
@@ -718,17 +822,14 @@ export default function CreateMarketPage() {
 
             {/* End Date & Time */}
             <div className="rounded-2xl border border-border bg-card/40 backdrop-blur-xl p-6">
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-foreground">
-                  End Date & Time <span className="text-muted-foreground">*</span>
-                </label>
-              </div>
+              <label className="block text-sm font-medium text-foreground mb-3">
+                End Date & Time
+              </label>
 
-              {/* Current UTC Time Display */}
-              <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20">
-                <Clock className="h-4 w-4 text-primary" />
-                <span className="text-xs text-muted-foreground">Current UTC:</span>
-                <span className="text-xs font-mono text-foreground">{currentUTCTime}</span>
+              <div className="flex items-center gap-2 mb-4 px-4 py-3 rounded-xl bg-primary/10 border border-primary/20">
+                <Clock className="h-5 w-5 text-primary" />
+                <span className="text-sm text-muted-foreground">Current UTC:</span>
+                <span className="text-sm font-mono text-foreground">{currentUTCTime}</span>
               </div>
 
               <DateTimePicker
@@ -744,79 +845,92 @@ export default function CreateMarketPage() {
                 error={!!errors.endDateTime}
               />
               {errors.endDateTime && (
-                <p className="mt-2 text-sm text-muted-foreground flex items-center gap-1">
+                <p className="mt-2 text-sm text-red-400 flex items-center gap-1">
                   <AlertCircle className="h-4 w-4" />
                   {errors.endDateTime}
                 </p>
               )}
-              <p className="mt-2 text-xs text-muted-foreground">
-                Set the exact date and time when betting closes.
+              <p className="mt-3 text-sm text-muted-foreground">
+                Set when betting closes. The market can be resolved after this time.
               </p>
             </div>
           </div>
+        )}
 
-          {/* Resolution Source (Optional) */}
-          <div className="rounded-2xl border border-border bg-card/40 backdrop-blur-xl p-6">
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Resolution Source <span className="text-muted-foreground">(Optional)</span>
-            </label>
-            <input
-              type="text"
-              name="resolutionSource"
-              value={formData.resolutionSource}
-              onChange={handleInputChange}
-              placeholder="e.g., https://coinmarketcap.com, Official announcement, etc."
-              className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary/40 transition-colors"
-            />
-            <p className="mt-2 text-xs text-muted-foreground">
-              Specify the official source that will be used to determine the outcome.
-            </p>
-          </div>
+        {/* Step 5: Review */}
+        {currentStep === 5 && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-bold text-foreground mb-2">Review your market</h2>
+              <p className="text-muted-foreground">
+                Confirm all details before creating your prediction market.
+              </p>
+            </div>
 
-          {/* Summary Card */}
-          {formData.title && formData.category && formData.endDateTime && (
-            <div className="rounded-2xl border border-primary/30 bg-primary/5 backdrop-blur-xl p-6">
-              <h3 className="text-sm font-medium text-muted-foreground mb-4">Market Preview</h3>
-              <div className="space-y-3">
-                {imagePreview && (
-                  <div>
-                    <span className="text-xs text-muted-foreground">Image</span>
-                    <img
-                      src={imagePreview}
-                      alt="Market preview"
-                      className="mt-1 w-full h-32 object-cover rounded-lg border border-border"
-                    />
-                  </div>
-                )}
+            <div className="rounded-2xl border border-primary/30 bg-card/60 backdrop-blur-xl overflow-hidden">
+              {/* Image Preview */}
+              {imagePreview && (
+                <img
+                  src={imagePreview}
+                  alt="Market preview"
+                  className="w-full h-48 object-cover"
+                />
+              )}
+
+              <div className="p-6 space-y-6">
+                {/* Question */}
                 <div>
-                  <span className="text-xs text-muted-foreground">Question</span>
-                  <p className="text-foreground font-medium">{formData.title}</p>
+                  <label className="text-xs uppercase tracking-wider text-muted-foreground mb-1 block">
+                    Question
+                  </label>
+                  <p className="text-xl font-semibold text-foreground">{formData.title}</p>
                 </div>
-                {formData.options.filter(o => o.trim()).length > 0 && (
-                  <div>
-                    <span className="text-xs text-muted-foreground">Options</span>
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {formData.options.filter(o => o.trim()).map((opt, i) => (
-                        <span
-                          key={i}
-                          className="px-3 py-1 rounded-lg bg-primary/10 text-foreground text-sm"
-                        >
-                          {opt.trim()}
-                        </span>
-                      ))}
-                    </div>
+
+                {/* Options */}
+                <div>
+                  <label className="text-xs uppercase tracking-wider text-muted-foreground mb-2 block">
+                    Outcomes
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.options.filter(o => o.trim()).map((opt, i) => (
+                      <span
+                        key={i}
+                        className="px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-foreground font-medium"
+                      >
+                        {opt.trim()}
+                      </span>
+                    ))}
                   </div>
-                )}
-                <div className="flex gap-6">
+                </div>
+
+                {/* Resolution */}
+                <div>
+                  <label className="text-xs uppercase tracking-wider text-muted-foreground mb-1 block">
+                    Resolution Criteria
+                  </label>
+                  <p className="text-foreground">{formData.description}</p>
+                  {formData.resolutionSource && (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Source: {formData.resolutionSource}
+                    </p>
+                  )}
+                </div>
+
+                {/* Category & End Date */}
+                <div className="grid grid-cols-2 gap-6 pt-4 border-t border-border">
                   <div>
-                    <span className="text-xs text-muted-foreground">Category</span>
-                    <p className="text-foreground">{formData.category}</p>
+                    <label className="text-xs uppercase tracking-wider text-muted-foreground mb-1 block">
+                      Category
+                    </label>
+                    <p className="text-foreground font-medium">{formData.category}</p>
                   </div>
                   <div>
-                    <span className="text-xs text-muted-foreground">End Date & Time</span>
-                    <p className="text-foreground">
+                    <label className="text-xs uppercase tracking-wider text-muted-foreground mb-1 block">
+                      Betting Ends
+                    </label>
+                    <p className="text-foreground font-medium">
                       {formData.endDateTime?.toLocaleString('en-US', {
-                        month: 'short',
+                        month: 'long',
                         day: 'numeric',
                         year: 'numeric',
                         hour: '2-digit',
@@ -827,46 +941,72 @@ export default function CreateMarketPage() {
                 </div>
               </div>
             </div>
-          )}
 
-          {/* Submit Button */}
-          <div className="flex flex-col gap-4">
+            {/* Wallet Warning */}
             {!authenticated && (
-              <div className="rounded-xl border border-primary/30 bg-primary/10 p-4 flex items-center gap-3">
-                <AlertCircle className="h-5 w-5 text-primary shrink-0" />
-                <p className="text-sm text-muted-foreground">
+              <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4 flex items-center gap-3">
+                <AlertCircle className="h-5 w-5 text-yellow-500 shrink-0" />
+                <p className="text-sm text-foreground">
                   Please connect your wallet to create a market.
                 </p>
               </div>
             )}
-
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full py-4 rounded-xl font-semibold bg-primary hover:bg-primary/90 text-primary-foreground transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  {txStatus === 'deploying' && 'Deploying to Mantle Sepolia...'}
-                  {txStatus === 'saving' && 'Saving market metadata...'}
-                  {txStatus === 'done' && 'Market created!'}
-                </>
-              ) : authenticated ? (
-                <>
-                  <Wallet className="h-5 w-5" />
-                  Create Market on Mantle
-                </>
-              ) : (
-                'Connect Wallet to Create'
-              )}
-            </button>
-
-            <p className="text-center text-xs text-muted-foreground">
-              By creating a market, you agree to provide accurate resolution based on the criteria defined above.
-            </p>
           </div>
-        </form>
+        )}
+      </div>
+
+      {/* Navigation Buttons */}
+      <div className="flex gap-4 mt-8">
+        {currentStep > 1 && (
+          <button
+            type="button"
+            onClick={handleBack}
+            className="flex-1 py-4 rounded-xl font-semibold border border-border text-foreground hover:bg-muted transition-all flex items-center justify-center gap-2"
+          >
+            <ArrowLeft className="h-5 w-5" />
+            Back
+          </button>
+        )}
+
+        {currentStep < STEPS.length ? (
+          <button
+            type="button"
+            onClick={handleNext}
+            className="flex-1 py-4 rounded-xl font-semibold bg-primary hover:bg-primary/90 text-primary-foreground transition-all flex items-center justify-center gap-2"
+          >
+            Continue
+            <ArrowRight className="h-5 w-5" />
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={isSubmitting || !authenticated}
+            className="flex-1 py-4 rounded-xl font-semibold bg-primary hover:bg-primary/90 text-primary-foreground transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" />
+                {txStatus === 'deploying' && 'Deploying to Mantle...'}
+                {txStatus === 'saving' && 'Saving metadata...'}
+                {txStatus === 'done' && 'Market created!'}
+              </>
+            ) : authenticated ? (
+              <>
+                <Wallet className="h-5 w-5" />
+                Create Market on Mantle
+              </>
+            ) : (
+              'Connect Wallet to Create'
+            )}
+          </button>
+        )}
+      </div>
+
+      {/* Footer Note */}
+      <p className="text-center text-xs text-muted-foreground mt-6">
+        By creating a market, you agree to provide accurate resolution based on the criteria defined.
+      </p>
     </div>
   );
 }
