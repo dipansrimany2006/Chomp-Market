@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils';
 import { useFactory } from '@/hooks/useContracts';
 import { MANTLE_SEPOLIA } from '@/lib/contracts';
 import { DateTimePicker } from '@/components/ui/datetime-picker';
+import PageTransition from '@/components/ui/page-transition';
 
 interface FormData {
   title: string;
@@ -358,7 +359,7 @@ export default function CreateMarketPage() {
   // Success screen
   if (isSuccess) {
     return (
-      <div className="min-h-[80vh] flex flex-col items-center justify-center px-4">
+      <PageTransition className="min-h-[80vh] flex flex-col items-center justify-center px-4">
         <div className="text-center max-w-md">
           <div className="w-24 h-24 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-6 animate-pulse">
             <CheckCircle className="h-12 w-12 text-green-500" />
@@ -380,12 +381,12 @@ export default function CreateMarketPage() {
           )}
           <p className="text-muted-foreground text-sm animate-pulse">Redirecting to home...</p>
         </div>
-      </div>
+      </PageTransition>
     );
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-4 py-8">
+    <PageTransition className="w-full max-w-4xl mx-auto px-4 py-8">
       {/* Header */}
       <div className="mb-8">
         <button
@@ -1007,6 +1008,6 @@ export default function CreateMarketPage() {
       <p className="text-center text-xs text-muted-foreground mt-6">
         By creating a market, you agree to provide accurate resolution based on the criteria defined.
       </p>
-    </div>
+    </PageTransition>
   );
 }

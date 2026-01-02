@@ -5,6 +5,7 @@ import CategoryScroll from "@/components/CategoryScroll";
 import PredictionsGrid from "@/components/PredictionsGrid";
 import TrendingSection from "@/components/TrendingSection";
 import FeaturedPrediction from "@/components/FeaturedPrediction";
+import PageTransition from "@/components/ui/page-transition";
 import { Prediction, PollFromAPI, transformPollToPrediction } from "@/lib/predictions";
 import { fetchMarketInfo } from "@/lib/contracts";
 
@@ -57,7 +58,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="w-[80%] flex flex-col flex-1 overflow-hidden">
+    <PageTransition className="w-[80%] flex flex-col flex-1 overflow-hidden">
       {/* Featured Prediction Section */}
       {featuredPredictions.length > 0 && (
         <div className="px-6 pt-6">
@@ -74,6 +75,6 @@ export default function Home() {
       ) : (
         <PredictionsGrid activeCategory={activeCategory} />
       )}
-    </div>
+    </PageTransition>
   );
 }
