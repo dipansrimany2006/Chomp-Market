@@ -6,29 +6,29 @@ import { Skeleton } from '@/components/ui/skeleton';
 export default function Loading() {
   return (
     <motion.div
-      className="w-[80%] flex flex-col flex-1 overflow-hidden"
+      className="w-full px-4 sm:px-6 lg:w-[90%] xl:w-[85%] 2xl:w-[80%] flex flex-col flex-1 overflow-hidden"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
     >
       {/* Featured section skeleton */}
-      <div className="px-6 pt-6">
-        <Skeleton className="h-72 w-full rounded-2xl" />
+      <div className="pt-4 sm:pt-6">
+        <Skeleton className="h-[300px] sm:h-[400px] md:h-[450px] w-full rounded-xl sm:rounded-2xl" />
       </div>
 
       {/* Category scroll skeleton */}
-      <div className="flex gap-3 px-6 py-6 overflow-hidden">
+      <div className="flex gap-2 sm:gap-3 py-4 sm:py-6 overflow-hidden">
         {[1, 2, 3, 4, 5, 6].map((i) => (
-          <Skeleton key={i} className="h-10 w-24 rounded-full shrink-0" />
+          <Skeleton key={i} className="h-8 sm:h-10 w-16 sm:w-24 rounded-full shrink-0" />
         ))}
       </div>
 
       {/* Grid skeleton */}
-      <div className="px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
         {[1, 2, 3, 4, 5, 6].map((i) => (
           <div
             key={i}
-            className="bg-neutral-900 rounded-2xl border border-border p-5"
+            className="bg-neutral-900 rounded-xl sm:rounded-2xl border border-border p-4 sm:p-5"
           >
             {/* Header: Avatar + Username + Time */}
             <div className="flex items-center justify-between mb-4">

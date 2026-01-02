@@ -386,7 +386,7 @@ export default function CreateMarketPage() {
   }
 
   return (
-    <PageTransition className="w-full max-w-4xl mx-auto px-4 py-8">
+    <PageTransition className="w-full max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
       {/* Header */}
       <div className="mb-8">
         <button
@@ -401,8 +401,8 @@ export default function CreateMarketPage() {
       </div>
 
       {/* Step Indicators */}
-      <div className="flex justify-center mb-10">
-        <div className="flex items-center gap-3">
+      <div className="flex justify-center mb-6 sm:mb-10 overflow-x-auto">
+        <div className="flex items-center gap-1.5 sm:gap-3">
           {STEPS.map((step, index) => {
             const isActive = step.id === currentStep;
             const isCompleted = step.id < currentStep;
@@ -414,7 +414,7 @@ export default function CreateMarketPage() {
                   onClick={() => goToStep(step.id)}
                   disabled={!isClickable}
                   className={cn(
-                    'w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-200',
+                    'w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-semibold transition-all duration-200',
                     isActive && 'bg-primary text-primary-foreground scale-110',
                     isCompleted && 'bg-green-500 text-white',
                     !isActive && !isCompleted && 'bg-muted text-muted-foreground',
@@ -422,7 +422,7 @@ export default function CreateMarketPage() {
                   )}
                 >
                   {isCompleted ? (
-                    <CheckCircle className="h-4 w-4" />
+                    <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   ) : (
                     step.id
                   )}
@@ -430,7 +430,7 @@ export default function CreateMarketPage() {
                 {index < STEPS.length - 1 && (
                   <div
                     className={cn(
-                      'w-8 h-0.5 ml-3',
+                      'w-4 sm:w-8 h-0.5 ml-1.5 sm:ml-3',
                       step.id < currentStep ? 'bg-green-500' : 'bg-border'
                     )}
                   />
@@ -442,16 +442,16 @@ export default function CreateMarketPage() {
       </div>
 
       {/* Step Content */}
-      <div className="min-h-[400px]">
+      <div className="min-h-[350px] sm:min-h-[400px]">
         {/* Step 1: Question & Image */}
         {currentStep === 1 && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-foreground">What's your prediction?</h2>
+          <div className="space-y-4 sm:space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="text-center mb-6 sm:mb-8">
+              <h2 className="text-xl sm:text-2xl font-bold text-foreground">What's your prediction?</h2>
             </div>
 
             {/* Question Input */}
-            <div className="rounded-2xl border border-border bg-card/40 backdrop-blur-xl p-6">
+            <div className="rounded-xl sm:rounded-2xl border border-border bg-card/40 backdrop-blur-xl p-4 sm:p-6">
               <label className="block text-sm font-medium text-foreground mb-3">
                 Market Question
               </label>
@@ -480,7 +480,7 @@ export default function CreateMarketPage() {
             </div>
 
             {/* Image Upload */}
-            <div className="rounded-2xl border border-border bg-card/40 backdrop-blur-xl p-6">
+            <div className="rounded-xl sm:rounded-2xl border border-border bg-card/40 backdrop-blur-xl p-4 sm:p-6">
               <label className="block text-sm font-medium text-foreground mb-3">
                 Market Image
               </label>
@@ -542,15 +542,15 @@ export default function CreateMarketPage() {
 
         {/* Step 2: Options */}
         {currentStep === 2 && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-foreground mb-2">Define the outcomes</h2>
-              <p className="text-muted-foreground">
+          <div className="space-y-4 sm:space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="text-center mb-6 sm:mb-8">
+              <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-2">Define the outcomes</h2>
+              <p className="text-muted-foreground text-sm sm:text-base">
                 Create 2-4 possible outcomes for your prediction market.
               </p>
             </div>
 
-            <div className="rounded-2xl border border-border bg-card/40 backdrop-blur-xl p-6">
+            <div className="rounded-xl sm:rounded-2xl border border-border bg-card/40 backdrop-blur-xl p-4 sm:p-6">
               <div className="flex items-center justify-between mb-6">
                 <label className="block text-sm font-medium text-foreground">
                   Market Options
@@ -633,16 +633,16 @@ export default function CreateMarketPage() {
 
         {/* Step 3: Resolution */}
         {currentStep === 3 && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-foreground mb-2">How will it be resolved?</h2>
-              <p className="text-muted-foreground">
+          <div className="space-y-4 sm:space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="text-center mb-6 sm:mb-8">
+              <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-2">How will it be resolved?</h2>
+              <p className="text-muted-foreground text-sm sm:text-base">
                 Define clear criteria for determining the outcome.
               </p>
             </div>
 
             {/* Resolution Criteria */}
-            <div className="rounded-2xl border border-border bg-card/40 backdrop-blur-xl p-6">
+            <div className="rounded-xl sm:rounded-2xl border border-border bg-card/40 backdrop-blur-xl p-4 sm:p-6">
               <label className="block text-sm font-medium text-foreground mb-3">
                 Resolution Criteria
               </label>
@@ -671,7 +671,7 @@ export default function CreateMarketPage() {
             </div>
 
             {/* Resolution Source (Optional) */}
-            <div className="rounded-2xl border border-border bg-card/40 backdrop-blur-xl p-6">
+            <div className="rounded-xl sm:rounded-2xl border border-border bg-card/40 backdrop-blur-xl p-4 sm:p-6">
               <label className="block text-sm font-medium text-foreground mb-3">
                 Resolution Source <span className="text-muted-foreground font-normal">(Optional)</span>
               </label>
@@ -692,17 +692,17 @@ export default function CreateMarketPage() {
 
         {/* Step 4: Category & Timing */}
         {currentStep === 4 && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-foreground mb-2">Final details</h2>
-              <p className="text-muted-foreground">
+          <div className="space-y-4 sm:space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="text-center mb-6 sm:mb-8">
+              <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-2">Final details</h2>
+              <p className="text-muted-foreground text-sm sm:text-base">
                 Choose a category and set when betting closes.
               </p>
             </div>
 
             {/* Category */}
             <div className={cn(
-              "rounded-2xl border border-border bg-card/40 backdrop-blur-xl p-6 relative",
+              "rounded-xl sm:rounded-2xl border border-border bg-card/40 backdrop-blur-xl p-4 sm:p-6 relative",
               categoryOpen && "z-50"
             )}>
               <label className="block text-sm font-medium text-foreground mb-3">
@@ -822,7 +822,7 @@ export default function CreateMarketPage() {
             </div>
 
             {/* End Date & Time */}
-            <div className="rounded-2xl border border-border bg-card/40 backdrop-blur-xl p-6">
+            <div className="rounded-xl sm:rounded-2xl border border-border bg-card/40 backdrop-blur-xl p-4 sm:p-6">
               <label className="block text-sm font-medium text-foreground mb-3">
                 End Date & Time
               </label>
@@ -860,15 +860,15 @@ export default function CreateMarketPage() {
 
         {/* Step 5: Review */}
         {currentStep === 5 && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-foreground mb-2">Review your market</h2>
-              <p className="text-muted-foreground">
+          <div className="space-y-4 sm:space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="text-center mb-6 sm:mb-8">
+              <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-2">Review your market</h2>
+              <p className="text-muted-foreground text-sm sm:text-base">
                 Confirm all details before creating your prediction market.
               </p>
             </div>
 
-            <div className="rounded-2xl border border-primary/30 bg-card/60 backdrop-blur-xl overflow-hidden">
+            <div className="rounded-xl sm:rounded-2xl border border-primary/30 bg-card/60 backdrop-blur-xl overflow-hidden">
               {/* Image Preview */}
               {imagePreview && (
                 <img
@@ -918,7 +918,7 @@ export default function CreateMarketPage() {
                 </div>
 
                 {/* Category & End Date */}
-                <div className="grid grid-cols-2 gap-6 pt-4 border-t border-border">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 pt-4 border-t border-border">
                   <div>
                     <label className="text-xs uppercase tracking-wider text-muted-foreground mb-1 block">
                       Category

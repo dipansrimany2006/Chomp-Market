@@ -229,7 +229,7 @@ const FeaturedPrediction: React.FC<FeaturedPredictionProps> = ({ predictions, cl
   return (
     <div
       className={cn(
-        'relative w-full h-[500px] rounded-2xl overflow-hidden cursor-pointer group',
+        'relative w-full h-[350px] md:h-[500px] rounded-xl md:rounded-2xl overflow-hidden cursor-pointer group',
         className
       )}
       onClick={handleCardClick}
@@ -250,10 +250,10 @@ const FeaturedPrediction: React.FC<FeaturedPredictionProps> = ({ predictions, cl
       {/* Gradient Overlay for text readability */}
       <div className="absolute inset-0 bg-gradient-to-r via-white/90 via-0% to-transparent border border-border" />
 
-      {/* Content Container - Left 50% */}
-      <div className="relative h-full w-full md:w-1/2 p-6 flex flex-col justify-between">
-        {/* Top Section */}
-        <div>
+      {/* Content Container - Left portion */}
+      <div className="relative h-full w-full md:w-1/2 p-4 md:p-6 flex flex-col justify-between">
+        {/* Top Section - Status, Category, Creator */}
+        <div className="shrink-0">
           {/* Status + Category Badges */}
           <div className="flex items-center gap-2 mb-3">
             <span className={cn(
@@ -274,7 +274,7 @@ const FeaturedPrediction: React.FC<FeaturedPredictionProps> = ({ predictions, cl
           </div>
 
           {/* Creator Info */}
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center overflow-hidden border-2 border-black/20">
               <span className="text-white text-xs font-medium">
                 {prediction.creatorAddress ? prediction.creatorAddress.slice(2, 4).toUpperCase() : 'AN'}
@@ -284,12 +284,15 @@ const FeaturedPrediction: React.FC<FeaturedPredictionProps> = ({ predictions, cl
               {formatAddress(prediction.creatorAddress)}
             </span>
             <span className="text-black/50 text-xs">
-              {getRelativeTime(prediction.createdAt)} 
+              {getRelativeTime(prediction.createdAt)}
             </span>
           </div>
+        </div>
 
+        {/* Bottom Section - Meta, Title, Description, Conviction, Buttons */}
+        <div className="shrink-0">
           {/* Meta Badges Row */}
-          <div className="flex items-center gap-2 mb-4 flex-wrap mt-25">
+          <div className="flex items-center gap-1.5 md:gap-2 mb-3 md:mb-4 flex-wrap">
             {/* Volume Badge */}
             <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-black/5 text-black/70 border border-black/10 flex items-center gap-1">
               <BarChart3 className="w-3 h-3" />
@@ -319,22 +322,19 @@ const FeaturedPrediction: React.FC<FeaturedPredictionProps> = ({ predictions, cl
           </div>
 
           {/* Title */}
-          <h2 className="text-2xl md:text-3xl font-bold text-black mb-3 line-clamp-2">
+          <h2 className="text-lg md:text-2xl lg:text-3xl font-bold text-black mb-2 md:mb-3 line-clamp-2">
             {prediction.title}
           </h2>
 
-          {/* Description */}
+          {/* Description - Hidden on mobile, truncated with ellipsis */}
           {prediction.description && (
-            <p className="text-black/60 text-sm line-clamp-2 mb-4">
+            <p className="hidden md:block text-black/60 text-sm overflow-hidden text-ellipsis" style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
               {prediction.description}
             </p>
           )}
-        </div>
 
-        {/* Bottom Section */}
-        <div>
           {/* Conviction Bar */}
-          <div className="mb-4">
+          <div className="mb-4 mt-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-black text-sm font-extrabold">Conviction</span>
               <span className="text-black font-semibold text-sm">{Math.round(conviction)}%</span>
@@ -415,7 +415,7 @@ const FeaturedPrediction: React.FC<FeaturedPredictionProps> = ({ predictions, cl
 
       {/* Carousel Dots */}
       {predictions.length > 1 && (
-        <div className="absolute bottom-6 right-6 flex items-center gap-2">
+        <div className="absolute bottom-4 right-4 md:bottom-6 md:right-6 flex items-center gap-1.5 md:gap-2">
           {predictions.map((_, index) => (
             <button
               key={index}

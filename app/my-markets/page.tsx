@@ -145,7 +145,7 @@ function MarketCard({ poll, onResolve, onCancel, userWallet }: {
   };
 
   return (
-    <div className="rounded-2xl border border-border bg-card/50 backdrop-blur-xl p-5">
+    <div className="rounded-xl sm:rounded-2xl border border-border bg-card/50 backdrop-blur-xl p-4 sm:p-5">
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
@@ -338,10 +338,10 @@ function ResolveModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
       <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-card border border-border rounded-2xl p-6 max-w-md w-full">
-        <h2 className="text-xl font-bold text-foreground mb-2">Resolve Market</h2>
+      <div className="relative bg-card border border-border rounded-xl sm:rounded-2xl p-4 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <h2 className="text-lg sm:text-xl font-bold text-foreground mb-2">Resolve Market</h2>
         <p className="text-muted-foreground text-sm mb-4">{poll.question}</p>
 
         <p className="text-foreground text-sm mb-3">Select the winning option(s):</p>
@@ -412,10 +412,10 @@ function CancelModal({
   isLoading: boolean;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
       <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-card border border-border rounded-2xl p-6 max-w-md w-full">
-        <h2 className="text-xl font-bold text-foreground mb-2">Cancel Market</h2>
+      <div className="relative bg-card border border-border rounded-xl sm:rounded-2xl p-4 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <h2 className="text-lg sm:text-xl font-bold text-foreground mb-2">Cancel Market</h2>
         <p className="text-muted-foreground text-sm mb-4">{poll.question}</p>
 
         <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 mb-6">
@@ -608,7 +608,7 @@ export default function MyMarketsPage() {
 
   if (!authenticated) {
     return (
-      <PageTransition className="w-[80%] flex flex-col items-center justify-center py-16">
+      <PageTransition className="w-full px-4 sm:px-6 lg:w-[90%] xl:w-[85%] 2xl:w-[80%] flex flex-col items-center justify-center py-12 sm:py-16">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-foreground mb-4">Connect Wallet</h1>
           <p className="text-muted-foreground mb-6">Connect your wallet to view and manage your markets</p>
@@ -625,7 +625,7 @@ export default function MyMarketsPage() {
 
   if (isLoading) {
     return (
-      <PageTransition className="w-[80%] flex flex-col py-6">
+      <PageTransition className="w-full px-4 sm:px-6 lg:w-[90%] xl:w-[85%] 2xl:w-[80%] flex flex-col py-4 sm:py-6">
         {/* Header skeleton */}
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -678,25 +678,25 @@ export default function MyMarketsPage() {
   }
 
   return (
-    <PageTransition className="w-[80%] flex flex-col py-6 overflow-y-auto scrollbar-hide">
+    <PageTransition className="w-full px-4 sm:px-6 lg:w-[90%] xl:w-[85%] 2xl:w-[80%] flex flex-col py-4 sm:py-6 overflow-y-auto scrollbar-hide">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
         <div>
           <button
             onClick={() => router.push('/')}
-            className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-4"
+            className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-3 sm:mb-4"
           >
             <ArrowLeft className="h-4 w-4" />
             <span className="text-sm">Back to Markets</span>
           </button>
-          <h1 className="text-2xl font-bold text-foreground">My Markets</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">My Markets</h1>
           <p className="text-muted-foreground text-sm mt-1">
             Manage and resolve your prediction markets
           </p>
         </div>
         <button
           onClick={() => router.push('/create')}
-          className="px-4 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-sm transition-colors"
+          className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-sm transition-colors"
         >
           Create Market
         </button>

@@ -260,7 +260,7 @@ export default function PredictionDetailPage() {
 
   if (isLoading) {
     return (
-      <PageTransition className="w-[80%] flex flex-col py-6">
+      <PageTransition className="w-full px-4 sm:px-6 lg:w-[90%] xl:w-[85%] 2xl:w-[80%] flex flex-col py-4 sm:py-6">
         {/* Back button skeleton */}
         <Skeleton className="h-5 w-16 mb-6" />
 
@@ -358,22 +358,22 @@ export default function PredictionDetailPage() {
   }
 
   return (
-    <PageTransition className="w-[80%] flex flex-col py-6 overflow-y-auto scrollbar-hide">
+    <PageTransition className="w-full px-4 sm:px-6 lg:w-[90%] xl:w-[85%] 2xl:w-[80%] flex flex-col py-4 sm:py-6 overflow-y-auto scrollbar-hide">
       {/* Back Navigation */}
       <button
         onClick={() => router.push('/')}
-        className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-6 w-fit"
+        className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-4 sm:mb-6 w-fit"
       >
         <ArrowLeft className="h-4 w-4" />
         <span className="text-sm">Back</span>
       </button>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
         {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
           {/* Market Header */}
-          <div className="flex items-start gap-4">
-            <div className="w-16 h-16 rounded-2xl overflow-hidden bg-muted shrink-0">
+          <div className="flex items-start gap-3 sm:gap-4">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl overflow-hidden bg-muted shrink-0">
               {prediction.imageUrl ? (
                 <img
                   src={prediction.imageUrl}
@@ -389,13 +389,13 @@ export default function PredictionDetailPage() {
               )}
             </div>
 
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold text-foreground leading-tight mb-2">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-lg sm:text-2xl font-bold text-foreground leading-tight mb-2">
                 {prediction.title}
               </h1>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="hidden sm:flex items-center gap-2">
               <button className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
                 <Share2 className="h-5 w-5" />
               </button>
@@ -411,17 +411,17 @@ export default function PredictionDetailPage() {
           {/* Claim Winnings Banner - Shows when market is resolved */}
           {marketInfo?.status === MarketStatus.Resolved && authenticated && (
             <div className={cn(
-              'rounded-2xl border p-6',
+              'rounded-xl sm:rounded-2xl border p-4 sm:p-6',
               userWinningsInfo.hasWinningShares && !userPosition?.hasClaimed
                 ? 'bg-primary/15 border-primary/30'
                 : userPosition?.hasClaimed
                   ? 'bg-muted border border-border'
                   : 'bg-muted/50 border-border'
             )}>
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                <div className="flex items-start gap-3 sm:gap-4">
                   <div className={cn(
-                    'p-3 rounded-xl',
+                    'p-2 sm:p-3 rounded-lg sm:rounded-xl shrink-0',
                     userWinningsInfo.hasWinningShares && !userPosition?.hasClaimed
                       ? 'bg-primary/20'
                       : userPosition?.hasClaimed
@@ -477,7 +477,7 @@ export default function PredictionDetailPage() {
                   <button
                     onClick={handleClaimWinnings}
                     disabled={isClaiming}
-                    className="px-6 py-3 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shrink-0"
+                    className="w-full sm:w-auto px-4 sm:px-6 py-3 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-sm sm:text-base transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shrink-0"
                   >
                     {isClaiming ? (
                       <>
@@ -497,12 +497,12 @@ export default function PredictionDetailPage() {
           )}
 
           {/* Options Table - Dynamic */}
-          <div className="rounded-2xl border border-border bg-card/50 backdrop-blur-xl overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-3 border-b border-border">
-              <span className="text-muted-foreground text-sm">Outcome</span>
-              <div className="flex items-center gap-4">
-                <span className="text-muted-foreground text-sm w-20 text-center">Chance</span>
-                <span className="w-28"></span>
+          <div className="rounded-xl sm:rounded-2xl border border-border bg-card/50 backdrop-blur-xl overflow-hidden">
+            <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-border">
+              <span className="text-muted-foreground text-xs sm:text-sm">Outcome</span>
+              <div className="flex items-center gap-2 sm:gap-4">
+                <span className="text-muted-foreground text-xs sm:text-sm w-14 sm:w-20 text-center">Chance</span>
+                <span className="w-20 sm:w-28"></span>
               </div>
             </div>
 
@@ -516,24 +516,24 @@ export default function PredictionDetailPage() {
                 <div
                   key={index}
                   className={cn(
-                    'flex items-center justify-between px-6 py-4 border-b border-border last:border-b-0 transition-colors',
+                    'flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-border last:border-b-0 transition-colors',
                     isSelected && `${color.bgLight}`,
                     isWinner && marketInfo?.status === MarketStatus.Resolved && 'bg-primary/10'
                   )}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className={cn('w-10 h-10 rounded-full flex items-center justify-center', color.bgLight)}>
-                      <span className={cn('font-bold', color.text)}>{index + 1}</span>
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className={cn('w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center', color.bgLight)}>
+                      <span className={cn('font-bold text-sm sm:text-base', color.text)}>{index + 1}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-foreground font-medium">{label}</span>
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <span className="text-foreground font-medium text-sm sm:text-base">{label}</span>
                       {isWinner && (
-                        <CheckCircle className="h-4 w-4 text-primary" />
+                        <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <span className="text-foreground font-bold text-lg w-20 text-center">
+                  <div className="flex items-center gap-2 sm:gap-4">
+                    <span className="text-foreground font-bold text-sm sm:text-lg w-14 sm:w-20 text-center">
                       {Math.round(optionOdds)}%
                     </span>
                     <button
@@ -543,13 +543,14 @@ export default function PredictionDetailPage() {
                         setOrderType('buy');
                       }}
                       className={cn(
-                        'w-28 py-2 px-4 rounded-lg text-sm font-semibold transition-all',
+                        'w-20 sm:w-28 py-1.5 sm:py-2 px-2 sm:px-4 rounded-lg text-xs sm:text-sm font-semibold transition-all',
                         isSelected
                           ? `${color.bg} text-primary-foreground`
                           : `${color.bgLight} ${color.text} border ${color.border} hover:opacity-80`
                       )}
                     >
-                      Buy {Math.round(optionOdds)}%
+                      <span className="hidden sm:inline">Buy {Math.round(optionOdds)}%</span>
+                      <span className="sm:hidden">Buy</span>
                     </button>
                   </div>
                 </div>
@@ -677,8 +678,8 @@ export default function PredictionDetailPage() {
         </div>
 
         {/* Sidebar - Order Panel */}
-        <div className="space-y-4">
-          <div className="rounded-2xl border border-border bg-card/50 backdrop-blur-xl p-6 sticky top-6">
+        <div className="space-y-4 order-first lg:order-none">
+          <div className="rounded-xl sm:rounded-2xl border border-border bg-card/50 backdrop-blur-xl p-4 sm:p-6 lg:sticky lg:top-6">
             {/* Market Summary */}
             <div className="flex items-center gap-3 mb-4 pb-4 border-b border-border">
               <div className="w-10 h-10 rounded-lg overflow-hidden bg-muted shrink-0">

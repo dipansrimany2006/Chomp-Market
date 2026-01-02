@@ -54,47 +54,48 @@ const CategoryScroll: React.FC<CategoryScrollProps> = ({ activeCategory, onCateg
   };
 
   return (
-    <div className="w-full px-6">
-      <div className="flex items-center gap-2 backdrop-blur-lg  rounded-3xl p-2 mt-4.5">
+    <div className="w-full px-4 sm:px-6">
+      <div className="flex items-center gap-1.5 sm:gap-2 backdrop-blur-lg rounded-2xl sm:rounded-3xl p-1.5 sm:p-2 mt-3 sm:mt-4">
         {/* Fixed Left Section - All, Trending & New */}
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
           <button
             type="button"
             onClick={() => onCategoryChange(null)}
             className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all',
+              'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all',
               activeCategory === null
                 ? 'bg-primary/20 text-primary'
                 : 'text-muted-foreground hover:text-foreground hover:bg-muted'
             )}
           >
-            <LayoutGrid className="w-4 h-4" />
+            <LayoutGrid className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             All
           </button>
           <button
             type="button"
             onClick={() => handleCategoryClick('trending')}
             className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all',
+              'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all',
               activeCategory === 'trending'
                 ? 'bg-primary/20 text-primary'
                 : 'text-muted-foreground hover:text-foreground hover:bg-muted'
             )}
           >
-            <TrendingUp className="w-4 h-4" />
-            Trending
+            <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">Trending</span>
+            <span className="sm:hidden">Hot</span>
           </button>
           <button
             type="button"
             onClick={() => handleCategoryClick('new')}
             className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all',
+              'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all',
               activeCategory === 'new'
                 ? 'bg-primary/20 text-primary'
                 : 'text-muted-foreground hover:text-foreground hover:bg-muted'
             )}
           >
-            <Sparkles className="w-4 h-4" />
+            <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             New
           </button>
         </div>
@@ -130,7 +131,7 @@ const CategoryScroll: React.FC<CategoryScrollProps> = ({ activeCategory, onCateg
                 type="button"
                 onClick={() => handleCategoryClick(category)}
                 className={cn(
-                  'px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all',
+                  'px-2 sm:px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap transition-all',
                   activeCategory === category
                     ? 'bg-primary/20 text-primary'
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted'

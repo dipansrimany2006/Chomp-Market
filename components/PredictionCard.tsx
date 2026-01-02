@@ -197,7 +197,7 @@ const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, className }
     <div
       onClick={handleCardClick}
       className={cn(
-        'bg-neutral-900 backdrop-blur-xl rounded-2xl border border-border p-5 hover:border-primary/40 transition-all cursor-pointer',
+        'bg-neutral-900 backdrop-blur-xl rounded-xl sm:rounded-2xl border border-border p-4 sm:p-5 hover:border-primary/40 transition-all cursor-pointer',
         className
       )}
     >

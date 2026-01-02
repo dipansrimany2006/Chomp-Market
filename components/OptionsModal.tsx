@@ -198,7 +198,7 @@ const OptionsModal: React.FC<OptionsModalProps> = ({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
-              className="fixed top-[50%] left-[50%] z-50 translate-x-[-50%] translate-y-[-50%] max-w-md w-full border border-border bg-neutral-900 backdrop-blur-xl text-foreground p-0 gap-0 overflow-hidden rounded-3xl"
+              className="fixed top-[50%] left-[50%] z-50 translate-x-[-50%] translate-y-[-50%] w-[calc(100%-2rem)] sm:w-full max-w-md border border-border bg-neutral-900 backdrop-blur-xl text-foreground p-0 gap-0 overflow-hidden rounded-2xl sm:rounded-3xl max-h-[90vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
               onPointerDown={(e) => e.stopPropagation()}
             >
@@ -208,9 +208,9 @@ const OptionsModal: React.FC<OptionsModalProps> = ({
               </DialogClose>
 
               {/* Header */}
-              <DialogHeader className="p-6 pb-4 pr-14 border-b border-border">
+              <DialogHeader className="p-4 sm:p-6 pb-4 pr-12 sm:pr-14 border-b border-border">
                 <div className="flex items-start gap-3">
-            <div className="w-12 h-12 rounded-xl overflow-hidden bg-neutral-800 shrink-0">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl overflow-hidden bg-neutral-800 shrink-0">
               {prediction.imageUrl ? (
                 <img
                   src={prediction.imageUrl}
@@ -238,7 +238,7 @@ const OptionsModal: React.FC<OptionsModalProps> = ({
               </div>
               </DialogHeader>
 
-        <div className="p-6 space-y-4">
+        <div className="p-4 sm:p-6 space-y-3 sm:space-y-4">
           {/* Buy/Sell Toggle */}
           <div className="flex gap-2">
             <button

@@ -39,7 +39,7 @@ export default function RootLayout({
             </div>
             <div className="relative z-10 flex flex-col items-center">
               <div className="sticky top-0 z-50 w-full flex justify-center bg-black border-b border-border">
-                <div className="w-[80%]">
+                <div className="w-full px-4 sm:px-6 lg:w-[90%] xl:w-[85%] 2xl:w-[80%]">
                   <Navbar />
                 </div>
               </div>

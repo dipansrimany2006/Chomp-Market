@@ -90,7 +90,7 @@ const PredictionsGrid: React.FC<PredictionsGridProps> = ({ activeCategory }) => 
   if (isLoading) {
     return (
       <motion.div
-        className="w-full flex-1 overflow-y-auto scrollbar-hide px-6 py-6"
+        className="w-full flex-1 overflow-y-auto scrollbar-hide px-4 sm:px-6 py-4 sm:py-6"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.3 }}
@@ -162,7 +162,7 @@ const PredictionsGrid: React.FC<PredictionsGridProps> = ({ activeCategory }) => 
   }
 
   return (
-    <div className="w-full flex-1 overflow-y-auto scrollbar-hide px-6 py-6">
+    <div className="w-full flex-1 overflow-y-auto scrollbar-hide px-4 sm:px-6 py-4 sm:py-6">
       {/* Section header */}
       <div className="mb-6 flex items-center justify-between">
         <div>

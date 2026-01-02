@@ -58,10 +58,10 @@ export default function Home() {
   }, []);
 
   return (
-    <PageTransition className="w-[80%] flex flex-col flex-1 overflow-hidden">
+    <PageTransition className="w-full px-4 sm:px-6 lg:w-[90%] xl:w-[85%] 2xl:w-[80%] flex flex-col flex-1 overflow-hidden">
       {/* Featured Prediction Section */}
       {featuredPredictions.length > 0 && (
-        <div className="px-6 pt-6">
+        <div className="pt-4 sm:pt-6">
           <FeaturedPrediction predictions={featuredPredictions} />
         </div>
       )}

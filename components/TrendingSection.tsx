@@ -60,7 +60,7 @@ const TrendingSection: React.FC = () => {
   }, []);
 
   return (
-    <div className="w-full px-6 py-4">
+    <div className="w-full px-4 sm:px-6 py-3 sm:py-4">
       {/* Prediction Cards Grid */}
       {isLoading ? (
         <motion.div
