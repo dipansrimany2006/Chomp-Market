@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import { TrendingUp, Sparkles, ChevronLeft, ChevronRight, LayoutGrid } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useCategories } from '@/hooks/useQueries';
 
 interface CategoryScrollProps {
   activeCategory: string | null;
@@ -11,25 +12,12 @@ interface CategoryScrollProps {
 
 const CategoryScroll: React.FC<CategoryScrollProps> = ({ activeCategory, onCategoryChange }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [categories, setCategories] = useState<string[]>([]);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(true);
 
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const response = await fetch('/api/category');
-        const data = await response.json();
-        if (data.success && data.categories) {
-          setCategories(data.categories);
-        }
-      } catch (error) {
-        console.error('Error fetching categories:', error);
-      }
-    };
-
-    fetchCategories();
-  }, []);
+  // Use React Query for categories (cached for 5 minutes)
+  const { data: categoriesData } = useCategories();
+  const categories = categoriesData?.categories || [];
 
   const handleScroll = () => {
     if (scrollContainerRef.current) {

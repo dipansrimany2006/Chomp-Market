@@ -1,63 +1,14 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
-import { Prediction, PollFromAPI, transformPollToPrediction } from '@/lib/predictions';
-import { fetchMarketInfo } from '@/lib/contracts';
 import PredictionCard from './PredictionCard';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useTrendingPredictions } from '@/hooks/useQueries';
 
 const TrendingSection: React.FC = () => {
-  const [gridPredictions, setGridPredictions] = useState<Prediction[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Fetch polls from API
-  useEffect(() => {
-    const fetchPolls = async () => {
-      setIsLoading(true);
-      try {
-        const response = await fetch('/api/poll?limit=9');
-        const data = await response.json();
-
-        if (data.success && data.polls && data.polls.length > 0) {
-          const transformedPolls = data.polls.map((poll: PollFromAPI) =>
-            transformPollToPrediction(poll)
-          );
-
-          // Fetch live odds from blockchain for markets with contract addresses
-          const predictionsWithLiveOdds = await Promise.all(
-            transformedPolls.map(async (prediction: Prediction) => {
-              if (prediction.contractAddress) {
-                try {
-                  const marketInfo = await fetchMarketInfo(prediction.contractAddress);
-                  return {
-                    ...prediction,
-                    odds: marketInfo.odds,
-                    priceChange: marketInfo.odds[0] - (100 / marketInfo.odds.length),
-                  };
-                } catch (err) {
-                  console.warn(`Failed to fetch live odds for ${prediction.id}:`, err);
-                  return prediction;
-                }
-              }
-              return prediction;
-            })
-          );
-
-          setGridPredictions(predictionsWithLiveOdds);
-        } else {
-          setGridPredictions([]);
-        }
-      } catch (err) {
-        console.error('Error fetching polls:', err);
-        setGridPredictions([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchPolls();
-  }, []);
+  // Use React Query for trending predictions (cached + auto-refresh)
+  const { data: gridPredictions = [], isLoading } = useTrendingPredictions(9);
 
   return (
     <div className="w-full px-4 sm:px-6 py-3 sm:py-4">

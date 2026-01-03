@@ -1,84 +1,18 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import PredictionCard from './PredictionCard';
-import { Prediction, PollFromAPI, transformPollToPrediction } from '@/lib/predictions';
-import { fetchMarketInfo, MarketStatus } from '@/lib/contracts';
 import { Skeleton } from '@/components/ui/skeleton';
+import { usePredictionsByCategory } from '@/hooks/useQueries';
 
 interface PredictionsGridProps {
   activeCategory: string | null;
 }
 
 const PredictionsGrid: React.FC<PredictionsGridProps> = ({ activeCategory }) => {
-  const [predictions, setPredictions] = useState<Prediction[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchPolls = async () => {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const categoryParam = activeCategory && activeCategory !== 'trending' && activeCategory !== 'new'
-          ? `?category=${encodeURIComponent(activeCategory)}`
-          : '';
-
-        const response = await fetch(`/api/poll${categoryParam}`);
-        const data = await response.json();
-
-        if (data.success && data.polls) {
-          const transformedPolls = data.polls.map((poll: PollFromAPI) =>
-            transformPollToPrediction(poll)
-          );
-
-          // Fetch live odds from blockchain for markets with contract addresses
-          const predictionsWithLiveOdds = await Promise.all(
-            transformedPolls.map(async (prediction: Prediction) => {
-              if (prediction.contractAddress) {
-                try {
-                  const marketInfo = await fetchMarketInfo(prediction.contractAddress);
-                  // Convert blockchain status to prediction status
-                  const statusMap: Record<MarketStatus, 'active' | 'resolved' | 'cancelled'> = {
-                    [MarketStatus.Active]: 'active',
-                    [MarketStatus.Resolved]: 'resolved',
-                    [MarketStatus.Cancelled]: 'cancelled',
-                  };
-                  return {
-                    ...prediction,
-                    odds: marketInfo.odds,
-                    // Recalculate price change based on live odds
-                    priceChange: marketInfo.odds[0] - (100 / marketInfo.odds.length),
-                    // Use blockchain status for accurate market state
-                    status: statusMap[marketInfo.status],
-                    isOpen: marketInfo.isOpen,
-                  };
-                } catch (err) {
-                  console.warn(`Failed to fetch live odds for ${prediction.id}:`, err);
-                  return prediction;
-                }
-              }
-              return prediction;
-            })
-          );
-
-          setPredictions(predictionsWithLiveOdds);
-        } else {
-          throw new Error('Failed to fetch polls');
-        }
-      } catch (err) {
-        console.error('Error fetching polls:', err);
-        setError('Failed to load markets');
-        setPredictions([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchPolls();
-  }, [activeCategory]);
+  // Use React Query for predictions by category (cached + deduped)
+  const { data: predictions = [], isLoading, error } = usePredictionsByCategory(activeCategory);
 
   const getHeaderText = () => {
     if (!activeCategory) return 'Popular Markets';
@@ -184,7 +118,7 @@ const PredictionsGrid: React.FC<PredictionsGridProps> = ({ activeCategory }) => 
       {/* Error message */}
       {error && (
         <div className="mb-4 rounded-lg bg-[#fffaf3]/10 border border-[#fffaf3]/20 px-4 py-3">
-          <p className="text-sm text-[#fffaf3]/70">{error}</p>
+          <p className="text-sm text-[#fffaf3]/70">{error.message || 'Failed to load markets'}</p>
         </div>
       )}
 

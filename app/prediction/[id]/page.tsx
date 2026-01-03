@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { usePrivy } from '@privy-io/react-auth';
-import { Prediction, PollFromAPI, transformPollToPrediction } from '@/lib/predictions';
 import { cn } from '@/lib/utils';
 import {
   ArrowLeft,
@@ -22,10 +21,12 @@ import {
   Gift,
 } from 'lucide-react';
 import PriceChart from '@/components/PriceChart';
-import { useMarket, useToken, MarketInfo, UserPosition, MarketStatus, formatTokenAmount } from '@/hooks/useContracts';
+import { useMarket, MarketStatus, formatTokenAmount } from '@/hooks/useContracts';
+import { usePoll, usePollsByCategory, useMarketInfo, useCurrentUserPosition, useUserBalance, useInvalidateMarketData } from '@/hooks/useQueries';
 import { MANTLE_SEPOLIA } from '@/lib/contracts';
 import PageTransition from '@/components/ui/page-transition';
 import { Skeleton } from '@/components/ui/skeleton';
+import { transformPollToPrediction, PollFromAPI } from '@/lib/predictions';
 
 // Color palette for multiple options
 const OPTION_COLORS = [
@@ -38,47 +39,38 @@ const OPTION_COLORS = [
 export default function PredictionDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { authenticated, login, user } = usePrivy();
-  const [prediction, setPrediction] = useState<Prediction | null>(null);
-  const [relatedMarkets, setRelatedMarkets] = useState<Prediction[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { authenticated, login } = usePrivy();
   const [selectedOptionIndex, setSelectedOptionIndex] = useState<number>(0);
   const [orderType, setOrderType] = useState<'buy' | 'sell'>('buy');
   const [amount, setAmount] = useState('');
   const [rulesExpanded, setRulesExpanded] = useState(true);
   const [timelineExpanded, setTimelineExpanded] = useState(false);
-
-  // On-chain state
-  const [marketInfo, setMarketInfo] = useState<MarketInfo | null>(null);
-  const [userPosition, setUserPosition] = useState<UserPosition | null>(null);
-  const [tokenBalance, setTokenBalance] = useState<string>('0');
   const [isBuying, setIsBuying] = useState(false);
   const [isClaiming, setIsClaiming] = useState(false);
   const [txSuccess, setTxSuccess] = useState<string | null>(null);
 
-  // Contract hooks
+  // React Query hooks for data fetching
+  const { data: pollData, isLoading } = usePoll(params.id as string);
+  const prediction = pollData?.poll ? transformPollToPrediction(pollData.poll) : null;
+
+  // Related markets query
+  const { data: relatedData } = usePollsByCategory(prediction?.category || '');
+  const relatedMarkets = (relatedData?.polls || [])
+    .filter((p: PollFromAPI) => p._id !== params.id)
+    .slice(0, 3)
+    .map((p: PollFromAPI) => transformPollToPrediction(p));
+
+  // Contract address and hooks
   const contractAddress = prediction?.contractAddress || '';
-  const { getMarketInfo, getUserPosition, buyShares, sellShares, claimWinnings, isLoading: isContractLoading } = useMarket(contractAddress);
-  const { getBalance } = useToken();
+  const { buyShares, sellShares, claimWinnings } = useMarket(contractAddress);
 
-  // Fetch on-chain data
-  const fetchOnChainData = useCallback(async () => {
-    if (!contractAddress) return;
+  // React Query hooks for blockchain data (with caching + auto-refresh)
+  const { data: marketInfo } = useMarketInfo(contractAddress);
+  const { data: userPosition } = useCurrentUserPosition(contractAddress);
+  const { data: tokenBalance = '0' } = useUserBalance();
 
-    try {
-      const info = await getMarketInfo();
-      setMarketInfo(info);
-
-      if (user?.wallet?.address) {
-        const position = await getUserPosition();
-        setUserPosition(position);
-        const balance = await getBalance();
-        setTokenBalance(balance);
-      }
-    } catch (err) {
-      console.error('Error fetching on-chain data:', err);
-    }
-  }, [contractAddress, getMarketInfo, getUserPosition, getBalance, user?.wallet?.address]);
+  // Cache invalidation helper
+  const { invalidateAfterTrade, invalidateAfterClaim } = useInvalidateMarketData();
 
   // Handle buy shares
   const handleBuy = async () => {
@@ -105,7 +97,8 @@ export default function PredictionDetailPage() {
       const optionLabel = marketInfo?.optionLabels[selectedOptionIndex] || `Option ${selectedOptionIndex + 1}`;
       setTxSuccess(`Successfully bought ${optionLabel} shares!`);
       setAmount('');
-      await fetchOnChainData();
+      // Invalidate cached data to trigger refetch
+      invalidateAfterTrade(contractAddress);
     } catch (err) {
       console.error('Error buying shares:', err);
       alert(err instanceof Error ? err.message : 'Failed to buy shares');
@@ -147,7 +140,8 @@ export default function PredictionDetailPage() {
       const optionLabel = marketInfo?.optionLabels[selectedOptionIndex] || `Option ${selectedOptionIndex + 1}`;
       setTxSuccess(`Successfully sold ${optionLabel} shares!`);
       setAmount('');
-      await fetchOnChainData();
+      // Invalidate cached data to trigger refetch
+      invalidateAfterTrade(contractAddress);
     } catch (err) {
       console.error('Error selling shares:', err);
       alert(err instanceof Error ? err.message : 'Failed to sell shares');
@@ -164,7 +158,8 @@ export default function PredictionDetailPage() {
     try {
       await claimWinnings();
       setTxSuccess('Congratulations! Your winnings have been claimed successfully!');
-      await fetchOnChainData();
+      // Invalidate cached data to trigger refetch
+      invalidateAfterClaim(contractAddress);
     } catch (err) {
       console.error('Error claiming winnings:', err);
       const errorMsg = err instanceof Error ? err.message : 'Failed to claim winnings';
@@ -213,46 +208,6 @@ export default function PredictionDetailPage() {
   };
 
   const userWinningsInfo = calculateUserWinnings();
-
-  useEffect(() => {
-    const fetchPrediction = async () => {
-      setIsLoading(true);
-      try {
-        const response = await fetch(`/api/poll/${params.id}`);
-        const data = await response.json();
-
-        if (data.success && data.poll) {
-          const transformedPoll = transformPollToPrediction(data.poll);
-          setPrediction(transformedPoll);
-
-          // Fetch related markets
-          const relatedResponse = await fetch(`/api/poll?category=${encodeURIComponent(data.poll.category)}&limit=4`);
-          const relatedData = await relatedResponse.json();
-          if (relatedData.success && relatedData.polls) {
-            const related = relatedData.polls
-              .filter((p: PollFromAPI) => p._id !== params.id)
-              .slice(0, 3)
-              .map((p: PollFromAPI) => transformPollToPrediction(p));
-            setRelatedMarkets(related);
-          }
-        }
-      } catch (err) {
-        console.error('Error fetching prediction:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (params.id) {
-      fetchPrediction();
-    }
-  }, [params.id]);
-
-  useEffect(() => {
-    if (contractAddress) {
-      fetchOnChainData();
-    }
-  }, [contractAddress, fetchOnChainData]);
 
   // Get options from on-chain data or prediction
   const options = marketInfo?.optionLabels || prediction?.options || ['Yes', 'No'];
