@@ -30,6 +30,7 @@ const pollSchema = new Schema({
   odds: { type: [Number] },
 
   totalVolume: { type: Number, default: 0 },
+  totalTrades: { type: Number, default: 0 },
   status: { type: String, enum: ["active", "resolved", "cancelled"], default: "active", index: true },
   contractAddress: { type: String, index: true }, // On-chain market contract address
   createdAt: { type: Date, default: Date.now },

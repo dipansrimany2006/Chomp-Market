@@ -25,6 +25,10 @@ export async function GET(request: NextRequest) {
 
     if (status) {
       query.status = status;
+      // For active status, also ensure the market hasn't ended
+      if (status === 'active') {
+        query.pollEnd = { $gt: new Date() };
+      }
     }
 
     if (creatorWalletAddress) {
@@ -34,7 +38,7 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit;
 
     // Build sort object
-    const validSortFields = ['createdAt', 'totalVolume', 'pollEnd'];
+    const validSortFields = ['createdAt', 'totalVolume', 'totalTrades', 'pollEnd'];
     const sortField = validSortFields.includes(sortBy) ? sortBy : 'createdAt';
     const sortDirection = sortOrder === 'asc' ? 1 : -1;
     const sort: Record<string, 1 | -1> = { [sortField]: sortDirection };

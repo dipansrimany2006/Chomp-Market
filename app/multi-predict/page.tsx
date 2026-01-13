@@ -328,6 +328,23 @@ export default function MultiPredictPage() {
       setIsSuccess(true);
       toast.success('Predictions submitted successfully!');
 
+      // Increment totalTrades for all markets in the batch
+      await Promise.all(
+        validMarkets.map(async (m) => {
+          try {
+            const pollRes = await fetch(`/api/poll/${m.prediction.id}`).then(res => res.json());
+            const currentTrades = pollRes?.poll?.totalTrades || 0;
+            await fetch(`/api/poll/${m.prediction.id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ totalTrades: currentTrades + 1 }),
+            });
+          } catch (err) {
+            console.error(`Failed to increment trade count for ${m.prediction.id}:`, err);
+          }
+        })
+      );
+
       setTimeout(() => {
         router.push('/');
       }, 3000);

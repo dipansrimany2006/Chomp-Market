@@ -98,6 +98,21 @@ const OptionsModal: React.FC<OptionsModalProps> = ({
 
   if (!prediction) return null;
 
+  // Helper to increment totalTrades count
+  const incrementTotalTrades = async () => {
+    try {
+      const currentPoll = await fetch(`/api/poll/${prediction.id}`).then(res => res.json());
+      const currentTrades = currentPoll?.poll?.totalTrades || 0;
+      await fetch(`/api/poll/${prediction.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ totalTrades: currentTrades + 1 }),
+      });
+    } catch (err) {
+      console.error('Failed to increment trade count:', err);
+    }
+  };
+
   // Get options from on-chain data or prediction
   const options = marketInfo?.optionLabels || prediction.options || ['Yes', 'No'];
   const odds = marketInfo?.odds || prediction.odds || options.map(() => 100 / options.length);
@@ -128,6 +143,8 @@ const OptionsModal: React.FC<OptionsModalProps> = ({
       setTxSuccess(`Successfully bought ${optionLabel} shares!`);
       setAmount('');
       await fetchOnChainData();
+      // Increment trade count for featured ranking
+      incrementTotalTrades();
     } catch (err) {
       console.error('Error buying shares:', err);
       alert(err instanceof Error ? err.message : 'Failed to buy shares');
@@ -170,6 +187,8 @@ const OptionsModal: React.FC<OptionsModalProps> = ({
       setTxSuccess(`Successfully sold ${optionLabel} shares!`);
       setAmount('');
       await fetchOnChainData();
+      // Increment trade count for featured ranking
+      incrementTotalTrades();
     } catch (err) {
       console.error('Error selling shares:', err);
       alert(err instanceof Error ? err.message : 'Failed to sell shares');

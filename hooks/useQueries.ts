@@ -97,13 +97,13 @@ export function usePolls(filters: {
   });
 }
 
-// Fetch featured polls (top by volume)
+// Fetch featured polls (top by trade count - most interacted)
 export function useFeaturedPolls(limit: number = 5) {
   return useQuery({
     queryKey: queryKeys.polls.featured(limit),
     queryFn: async (): Promise<PollsResponse> => {
       const res = await fetch(
-        `/api/poll?limit=${limit}&sortBy=totalVolume&sortOrder=desc&status=active`
+        `/api/poll?limit=${limit}&sortBy=totalTrades&sortOrder=desc&status=active`
       );
       if (!res.ok) throw new Error('Failed to fetch featured polls');
       return res.json();
@@ -348,13 +348,13 @@ async function enrichPredictionsWithLiveOdds(predictions: Prediction[]): Promise
   );
 }
 
-// Hook for fetching featured predictions with live blockchain odds
+// Hook for fetching featured predictions with live blockchain odds (sorted by most interacted)
 export function useFeaturedPredictions(limit: number = 5) {
   return useQuery({
     queryKey: ['predictions', 'featured', limit],
     queryFn: async (): Promise<Prediction[]> => {
       const res = await fetch(
-        `/api/poll?limit=${limit}&sortBy=totalVolume&sortOrder=desc&status=active`
+        `/api/poll?limit=${limit}&sortBy=totalTrades&sortOrder=desc&status=active`
       );
       if (!res.ok) throw new Error('Failed to fetch featured polls');
       const data = await res.json();

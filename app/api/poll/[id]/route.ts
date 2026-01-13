@@ -42,7 +42,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { status, yesPrice, noPrice, totalVolume, winningOptionIndices, walletAddress } = body;
+    const { status, yesPrice, noPrice, totalVolume, totalTrades, winningOptionIndices, walletAddress } = body;
 
     await connectDB();
 
@@ -84,6 +84,10 @@ export async function PATCH(
       poll.totalVolume = totalVolume;
     }
 
+    if (typeof totalTrades === 'number') {
+      poll.totalTrades = totalTrades;
+    }
+
     poll.updatedAt = new Date();
 
     await poll.save();
@@ -96,6 +100,7 @@ export async function PATCH(
         yesPrice: poll.yesPrice,
         noPrice: poll.noPrice,
         totalVolume: poll.totalVolume,
+        totalTrades: poll.totalTrades,
         winningOptionIndices: poll.winningOptionIndices,
         updatedAt: poll.updatedAt,
       },

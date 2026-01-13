@@ -72,6 +72,24 @@ export default function PredictionDetailPage() {
   // Cache invalidation helper
   const { invalidateAfterTrade, invalidateAfterClaim } = useInvalidateMarketData();
 
+  // Helper to increment totalTrades count
+  const incrementTotalTrades = async () => {
+    try {
+      // First get current poll data to get current totalTrades
+      const currentPoll = await fetch(`/api/poll/${params.id}`).then(res => res.json());
+      const currentTrades = currentPoll?.poll?.totalTrades || 0;
+
+      // Increment totalTrades
+      await fetch(`/api/poll/${params.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ totalTrades: currentTrades + 1 }),
+      });
+    } catch (err) {
+      console.error('Failed to increment trade count:', err);
+    }
+  };
+
   // Handle buy shares
   const handleBuy = async () => {
     if (!authenticated) {
@@ -99,6 +117,8 @@ export default function PredictionDetailPage() {
       setAmount('');
       // Invalidate cached data to trigger refetch
       invalidateAfterTrade(contractAddress);
+      // Increment trade count for featured ranking
+      incrementTotalTrades();
     } catch (err) {
       console.error('Error buying shares:', err);
       alert(err instanceof Error ? err.message : 'Failed to buy shares');
@@ -142,6 +162,8 @@ export default function PredictionDetailPage() {
       setAmount('');
       // Invalidate cached data to trigger refetch
       invalidateAfterTrade(contractAddress);
+      // Increment trade count for featured ranking
+      incrementTotalTrades();
     } catch (err) {
       console.error('Error selling shares:', err);
       alert(err instanceof Error ? err.message : 'Failed to sell shares');
@@ -452,7 +474,7 @@ export default function PredictionDetailPage() {
           )}
 
           {/* Options Table - Dynamic */}
-          <div className="rounded-xl sm:rounded-2xl border border-border bg-card/50 backdrop-blur-xl overflow-hidden">
+          <div className="rounded-xl sm:rounded-2xl border border-border bg-neutral-900 backdrop-blur-xl overflow-hidden">
             <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-border">
               <span className="text-muted-foreground text-xs sm:text-sm">Outcome</span>
               <div className="flex items-center gap-2 sm:gap-4">
@@ -525,7 +547,7 @@ export default function PredictionDetailPage() {
           />
 
           {/* Rules Summary */}
-          <div className="rounded-2xl border border-border bg-card/50 backdrop-blur-xl">
+          <div className="rounded-2xl border border-border bg-neutral-900 backdrop-blur-xl">
             <button
               onClick={() => setRulesExpanded(!rulesExpanded)}
               className="w-full flex items-center justify-between p-6"
@@ -548,7 +570,7 @@ export default function PredictionDetailPage() {
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {options.map((opt, i) => (
-                    <span key={i} className="px-3 py-1 rounded-lg bg-muted text-foreground text-sm">
+                    <span key={i} className="px-3 py-1 rounded-lg bg-neutral-800 text-foreground text-sm">
                       {opt}
                     </span>
                   ))}
@@ -561,7 +583,7 @@ export default function PredictionDetailPage() {
           </div>
 
           {/* Timeline */}
-          <div className="rounded-2xl border border-border bg-card/50 backdrop-blur-xl">
+          <div className="rounded-2xl border border-border bg-neutral-900 backdrop-blur-xl">
             <button
               onClick={() => setTimelineExpanded(!timelineExpanded)}
               className="w-full flex items-center justify-between p-6"
@@ -604,9 +626,9 @@ export default function PredictionDetailPage() {
                   <div
                     key={market.id}
                     onClick={() => router.push(`/prediction/${market.id}`)}
-                    className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card/50 hover:bg-muted transition-colors cursor-pointer"
+                    className="flex items-center gap-4 p-4 rounded-xl border border-border bg-neutral-900 hover:bg-neutral-800 transition-colors cursor-pointer"
                   >
-                    <div className="w-10 h-10 rounded-lg overflow-hidden bg-muted shrink-0">
+                    <div className="w-10 h-10 rounded-lg overflow-hidden bg-neutral-800 shrink-0">
                       {market.imageUrl ? (
                         <img
                           src={market.imageUrl}
@@ -614,7 +636,7 @@ export default function PredictionDetailPage() {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full bg-muted" />
+                        <div className="w-full h-full bg-neutral-800" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -634,7 +656,7 @@ export default function PredictionDetailPage() {
 
         {/* Sidebar - Order Panel */}
         <div className="space-y-4 order-first lg:order-none">
-          <div className="rounded-xl sm:rounded-2xl border border-border bg-card/50 backdrop-blur-xl p-4 sm:p-6 lg:sticky lg:top-6">
+          <div className="rounded-xl sm:rounded-2xl border border-border bg-neutral-900 backdrop-blur-xl p-4 sm:p-6 lg:sticky lg:top-6">
             {/* Market Summary */}
             <div className="flex items-center gap-3 mb-4 pb-4 border-b border-border">
               <div className="w-10 h-10 rounded-lg overflow-hidden bg-muted shrink-0">
@@ -699,7 +721,7 @@ export default function PredictionDetailPage() {
                         'w-full py-3 px-4 rounded-lg text-sm font-semibold transition-all text-left flex items-center justify-between',
                         selectedOptionIndex === index
                           ? `${color.bg} text-primary-foreground`
-                          : `bg-muted text-muted-foreground border border-border hover:bg-muted/80`
+                          : `bg-neutral-800 text-muted-foreground border border-border hover:bg-neutral-800/80`
                       )}
                     >
                       <span>{label}</span>
@@ -711,7 +733,7 @@ export default function PredictionDetailPage() {
             </div>
 
             {/* Balance Display */}
-            <div className="flex items-center justify-between p-4 rounded-xl bg-muted border border-border mb-4">
+            <div className="flex items-center justify-between p-4 rounded-xl bg-neutral-800 border border-border mb-4">
               <div>
                 <p className="text-muted-foreground text-xs">MNT Balance</p>
                 <p className="text-foreground text-xs">Native Token</p>
@@ -731,7 +753,7 @@ export default function PredictionDetailPage() {
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="0.00"
                   step="0.01"
-                  className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary/50 transition-colors"
+                  className="w-full bg-neutral-800 border border-border rounded-xl px-4 py-3 text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary/50 transition-colors"
                 />
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">MNT</span>
               </div>
@@ -748,7 +770,7 @@ export default function PredictionDetailPage() {
                     'flex-1 py-2 text-sm rounded-lg border transition-colors',
                     amount === val
                       ? 'border-primary/50 bg-primary/10 text-foreground'
-                      : 'border-border bg-muted text-muted-foreground hover:bg-muted/80'
+                      : 'border-border bg-neutral-800 text-muted-foreground hover:bg-neutral-800/80'
                   )}
                 >
                   {val} MNT
@@ -758,7 +780,7 @@ export default function PredictionDetailPage() {
 
             {/* Potential Return */}
             {amount && (
-              <div className="mb-4 p-4 rounded-xl bg-muted border border-border">
+              <div className="mb-4 p-4 rounded-xl bg-neutral-800 border border-border">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-muted-foreground text-sm">Shares</span>
                   <span className="text-foreground font-medium">
@@ -813,7 +835,7 @@ export default function PredictionDetailPage() {
 
             {/* User Position */}
             {userPosition && userPosition.shares.some(s => s > 0n) && (
-              <div className="mt-4 p-4 rounded-xl bg-muted border border-border">
+              <div className="mt-4 p-4 rounded-xl bg-neutral-800 border border-border">
                 <p className="text-muted-foreground text-xs mb-2">Your Position</p>
                 <div className="space-y-2">
                   {options.map((label, index) => {
