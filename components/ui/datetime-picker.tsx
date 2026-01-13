@@ -1,9 +1,9 @@
 "use client"
 
 import * as React from "react"
-import { format } from "date-fns"
-import { Calendar as CalendarIcon, Clock } from "lucide-react"
+import { CalendarIcon, Clock } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import {
   Popover,
@@ -24,10 +24,11 @@ export function DateTimePicker({
   date,
   setDate,
   minDate,
-  placeholder = "Pick a date and time",
+  placeholder = "Select end date and time",
   className,
   error,
 }: DateTimePickerProps) {
+  const [open, setOpen] = React.useState(false)
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(date)
   const [hours, setHours] = React.useState<string>(
     date ? String(date.getHours()).padStart(2, "0") : "12"
@@ -35,7 +36,6 @@ export function DateTimePicker({
   const [minutes, setMinutes] = React.useState<string>(
     date ? String(date.getMinutes()).padStart(2, "0") : "00"
   )
-  const [isOpen, setIsOpen] = React.useState(false)
 
   // Update internal state when date prop changes
   React.useEffect(() => {
@@ -49,7 +49,7 @@ export function DateTimePicker({
   const handleDateSelect = (newDate: Date | undefined) => {
     if (newDate) {
       const updatedDate = new Date(newDate)
-      updatedDate.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0)
+      updatedDate.setHours(parseInt(hours, 10) || 0, parseInt(minutes, 10) || 0, 0, 0)
       setSelectedDate(updatedDate)
       setDate(updatedDate)
     } else {
@@ -58,26 +58,30 @@ export function DateTimePicker({
     }
   }
 
-  const handleTimeChange = (type: "hours" | "minutes", value: string) => {
+  const handleHoursChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
     const numValue = parseInt(value, 10)
-    
-    if (type === "hours") {
-      if (value === "" || (numValue >= 0 && numValue <= 23)) {
-        setHours(value)
-        if (selectedDate && value !== "") {
-          const updatedDate = new Date(selectedDate)
-          updatedDate.setHours(numValue, parseInt(minutes, 10), 0, 0)
-          setDate(updatedDate)
-        }
+
+    if (value === "" || (numValue >= 0 && numValue <= 23)) {
+      setHours(value)
+      if (selectedDate && value !== "") {
+        const updatedDate = new Date(selectedDate)
+        updatedDate.setHours(numValue, parseInt(minutes, 10) || 0, 0, 0)
+        setDate(updatedDate)
       }
-    } else {
-      if (value === "" || (numValue >= 0 && numValue <= 59)) {
-        setMinutes(value)
-        if (selectedDate && value !== "") {
-          const updatedDate = new Date(selectedDate)
-          updatedDate.setHours(parseInt(hours, 10), numValue, 0, 0)
-          setDate(updatedDate)
-        }
+    }
+  }
+
+  const handleMinutesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    const numValue = parseInt(value, 10)
+
+    if (value === "" || (numValue >= 0 && numValue <= 59)) {
+      setMinutes(value)
+      if (selectedDate && value !== "") {
+        const updatedDate = new Date(selectedDate)
+        updatedDate.setHours(parseInt(hours, 10) || 0, numValue, 0, 0)
+        setDate(updatedDate)
       }
     }
   }
@@ -98,75 +102,81 @@ export function DateTimePicker({
     }
   }
 
+  const formatDisplayDate = () => {
+    if (!date) return placeholder
+    return `${date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    })} at ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`
+  }
+
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button
-          type="button"
+        <Button
+          variant="outline"
           className={cn(
-            "w-full flex items-center justify-between bg-black/50 border rounded-xl px-4 py-3 text-left transition-colors",
+            "w-full justify-start font-normal bg-muted border rounded-xl px-4 py-6 text-left gap-2 hover:bg-muted/80",
             error
-              ? "border-[#fffaf3]/50 focus:border-[#fffaf3]"
-              : "border-[#fffaf3]/20 hover:border-[#fffaf3]/40 focus:border-[#fffaf3]/40",
-            !date && "text-[#fffaf3]/30",
+              ? "border-red-500 focus:border-red-500"
+              : "border-border hover:border-primary focus:border-primary",
+            !date && "text-muted-foreground",
             className
           )}
         >
-          <span className="flex items-center gap-2">
-            <CalendarIcon className="h-4 w-4 text-[#fffaf3]/50" />
-            {date ? (
-              <span className="text-[#fffaf3]">
-                {format(date, "PPP")} at {format(date, "HH:mm")}
-              </span>
-            ) : (
-              <span>{placeholder}</span>
-            )}
-          </span>
-        </button>
+          <CalendarIcon className="h-4 w-4 opacity-50" />
+          {formatDisplayDate()}
+        </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0 bg-black/95 border-[#fffaf3]/20" align="start">
+      <PopoverContent className="w-auto p-0 bg-card border-border" align="start">
+        {/* Calendar */}
         <Calendar
           mode="single"
           selected={selectedDate}
           onSelect={handleDateSelect}
-          disabled={(date) => minDate ? date < new Date(minDate.setHours(0, 0, 0, 0)) : date < new Date(new Date().setHours(0, 0, 0, 0))}
-          initialFocus
+          disabled={(d) => minDate ? d < new Date(minDate.setHours(0, 0, 0, 0)) : d < new Date(new Date().setHours(0, 0, 0, 0))}
         />
-        <div className="border-t border-[#fffaf3]/10 p-3">
-          <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-[#fffaf3]/50" />
-            <span className="text-sm text-[#fffaf3]/70">Time:</span>
+
+        {/* Time Section */}
+        <div className="border-t border-border px-4 py-3">
+          <div className="flex items-center gap-3">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">Time:</span>
             <div className="flex items-center gap-1 ml-auto">
               <input
                 type="text"
                 value={hours}
-                onChange={(e) => handleTimeChange("hours", e.target.value)}
+                onChange={handleHoursChange}
                 onBlur={handleHoursBlur}
-                className="w-12 bg-[#fffaf3]/10 border border-[#fffaf3]/20 rounded-md px-2 py-1 text-center text-[#fffaf3] text-sm focus:outline-none focus:border-[#fffaf3]/50"
+                className="w-12 bg-muted border border-border rounded-lg px-3 py-2 text-center text-foreground text-sm font-medium focus:outline-none focus:border-primary"
                 placeholder="HH"
                 maxLength={2}
               />
-              <span className="text-[#fffaf3]/50">:</span>
+              <span className="text-muted-foreground font-medium">:</span>
               <input
                 type="text"
                 value={minutes}
-                onChange={(e) => handleTimeChange("minutes", e.target.value)}
+                onChange={handleMinutesChange}
                 onBlur={handleMinutesBlur}
-                className="w-12 bg-[#fffaf3]/10 border border-[#fffaf3]/20 rounded-md px-2 py-1 text-center text-[#fffaf3] text-sm focus:outline-none focus:border-[#fffaf3]/50"
+                className="w-12 bg-muted border border-border rounded-lg px-3 py-2 text-center text-foreground text-sm font-medium focus:outline-none focus:border-primary"
                 placeholder="MM"
                 maxLength={2}
               />
             </div>
           </div>
         </div>
-        <div className="border-t border-[#fffaf3]/10 p-3">
-          <button
+
+        {/* Done Button */}
+        <div className="border-t border-border p-3">
+          <Button
             type="button"
-            onClick={() => setIsOpen(false)}
-            className="w-full py-2 rounded-lg bg-[#fffaf3] border border-[#fffaf3]/50 text-[#000] hover:bg-[#fffaf3]/90 transition-colors text-sm font-medium"
+            variant="secondary"
+            onClick={() => setOpen(false)}
+            className="w-full bg-foreground text-background hover:bg-foreground/90 font-medium"
           >
             Done
-          </button>
+          </Button>
         </div>
       </PopoverContent>
     </Popover>

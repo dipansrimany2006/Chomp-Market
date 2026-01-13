@@ -823,14 +823,15 @@ export default function CreateMarketPage() {
 
             {/* End Date & Time */}
             <div className="rounded-xl sm:rounded-2xl border border-border bg-card/40 backdrop-blur-xl p-4 sm:p-6">
-              <label className="block text-sm font-medium text-foreground mb-3">
-                End Date & Time
-              </label>
-
-              <div className="flex items-center gap-2 mb-4 px-4 py-3 rounded-xl bg-primary/10 border border-primary/20">
-                <Clock className="h-5 w-5 text-primary" />
-                <span className="text-sm text-muted-foreground">Current UTC:</span>
-                <span className="text-sm font-mono text-foreground">{currentUTCTime}</span>
+              <div className="flex items-center justify-between mb-4">
+                <label className="block text-sm font-medium text-foreground">
+                  End Date & Time
+                </label>
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20">
+                  <Clock className="h-4 w-4 text-primary" />
+                  <span className="text-xs text-muted-foreground">UTC:</span>
+                  <span className="text-xs font-mono text-foreground">{currentUTCTime}</span>
+                </div>
               </div>
 
               <DateTimePicker
@@ -846,12 +847,12 @@ export default function CreateMarketPage() {
                 error={!!errors.endDateTime}
               />
               {errors.endDateTime && (
-                <p className="mt-2 text-sm text-red-400 flex items-center gap-1">
+                <p className="mt-3 text-sm text-red-400 flex items-center gap-1">
                   <AlertCircle className="h-4 w-4" />
                   {errors.endDateTime}
                 </p>
               )}
-              <p className="mt-3 text-sm text-muted-foreground">
+              <p className="mt-4 text-sm text-muted-foreground">
                 Set when betting closes. The market can be resolved after this time.
               </p>
             </div>
