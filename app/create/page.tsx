@@ -401,7 +401,7 @@ export default function CreateMarketPage() {
       </div>
 
       {/* Step Indicators */}
-      <div className="flex justify-center mb-6 sm:mb-10 overflow-x-auto">
+      <div className="flex justify-center mb-6 sm:mb-10 overflow-x-auto overflow-y-hidden">
         <div className="flex items-center gap-1.5 sm:gap-3">
           {STEPS.map((step, index) => {
             const isActive = step.id === currentStep;
