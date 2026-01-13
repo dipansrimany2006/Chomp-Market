@@ -4,6 +4,7 @@ import { ethers } from 'ethers';
 export const CONTRACTS = {
   FACTORY: '0xF79884A18E7eeDD24d55f1A3BbA745Eb646Fd7f8',
   SAMPLE_MARKET: '0xa1504E28Af39CdB48f36AE86582663Fa3DF3777b',
+  BATCH_PREDICTION: '0x4CE81DB827E2D53a97E57a7A4F4097de976B9f0A',
 } as const;
 
 // Chain configuration
@@ -79,6 +80,20 @@ export const MARKET_ABI = [
   'event MarketCancelled(address indexed cancelledBy)',
   'event Claimed(address indexed user, uint256 payout)',
   'event Refunded(address indexed user, uint256 amount)',
+];
+
+// BatchPrediction ABI - For multi-market predictions in a single transaction
+export const BATCH_PREDICTION_ABI = [
+  // Write functions
+  'function batchPredict((address market, uint8 optionIndex, uint256 amount)[] predictions) payable',
+  'function batchPredictSimple(address[] markets, uint8[] optionIndices, uint256[] amounts) payable',
+  // View functions
+  'function validatePredictions(address[] markets, uint256[] amounts) view returns (bool[] valid, uint256 totalAmount)',
+  'function owner() view returns (address)',
+  // Events
+  'event BatchPredictionExecuted(address indexed user, uint256 totalAmount, uint256 marketsCount)',
+  'event PredictionPlaced(address indexed user, address indexed market, uint8 optionIndex, uint256 amount)',
+  'event PredictionFailed(address indexed user, address indexed market, uint8 optionIndex, uint256 amount, string reason)',
 ];
 
 // Market status enum

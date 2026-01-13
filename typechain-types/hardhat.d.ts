@@ -30,6 +30,14 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IERC165__factory>;
     getContractFactory(
+      name: "BatchPrediction",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.BatchPrediction__factory>;
+    getContractFactory(
+      name: "IPredictionMarket",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IPredictionMarket__factory>;
+    getContractFactory(
       name: "IOptimisticOracleV2",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IOptimisticOracleV2__factory>;
@@ -41,10 +49,6 @@ declare module "hardhat/types/runtime" {
       name: "MockOptimisticOracle",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.MockOptimisticOracle__factory>;
-    getContractFactory(
-      name: "IERC20",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.IERC20__factory>;
     getContractFactory(
       name: "PredictionMarket",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -83,6 +87,16 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.IERC165>;
     getContractAt(
+      name: "BatchPrediction",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.BatchPrediction>;
+    getContractAt(
+      name: "IPredictionMarket",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IPredictionMarket>;
+    getContractAt(
       name: "IOptimisticOracleV2",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
@@ -97,11 +111,6 @@ declare module "hardhat/types/runtime" {
       address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.MockOptimisticOracle>;
-    getContractAt(
-      name: "IERC20",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.IERC20>;
     getContractAt(
       name: "PredictionMarket",
       address: string | ethers.Addressable,
@@ -140,6 +149,14 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IERC165>;
     deployContract(
+      name: "BatchPrediction",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.BatchPrediction>;
+    deployContract(
+      name: "IPredictionMarket",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IPredictionMarket>;
+    deployContract(
       name: "IOptimisticOracleV2",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IOptimisticOracleV2>;
@@ -151,10 +168,6 @@ declare module "hardhat/types/runtime" {
       name: "MockOptimisticOracle",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.MockOptimisticOracle>;
-    deployContract(
-      name: "IERC20",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.IERC20>;
     deployContract(
       name: "PredictionMarket",
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -193,6 +206,16 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IERC165>;
     deployContract(
+      name: "BatchPrediction",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.BatchPrediction>;
+    deployContract(
+      name: "IPredictionMarket",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IPredictionMarket>;
+    deployContract(
       name: "IOptimisticOracleV2",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -207,11 +230,6 @@ declare module "hardhat/types/runtime" {
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.MockOptimisticOracle>;
-    deployContract(
-      name: "IERC20",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.IERC20>;
     deployContract(
       name: "PredictionMarket",
       args: any[],

@@ -5,7 +5,9 @@
   "collateral": "Native MNT",
   "contracts": {
     "factory": "0xF79884A18E7eeDD24d55f1A3BbA745Eb646Fd7f8",
-    "sampleMarket": "0xa1504E28Af39CdB48f36AE86582663Fa3DF3777b"
+    "sampleMarket": "0xa1504E28Af39CdB48f36AE86582663Fa3DF3777b",
+    "batchPrediction": "0x4CE81DB827E2D53a97E57a7A4F4097de976B9f0A"
   },
-  "timestamp": "2025-12-24T21:07:11.953Z"
+  "timestamp": "2025-12-24T21:07:11.953Z",
+  "batchPredictionDeployedAt": "2026-01-12T21:33:10.016Z"
 }

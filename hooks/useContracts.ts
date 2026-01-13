@@ -8,6 +8,7 @@ import {
   MANTLE_SEPOLIA,
   FACTORY_ABI,
   MARKET_ABI,
+  BATCH_PREDICTION_ABI,
   MarketInfo,
   UserPosition,
   MarketStatus,
@@ -76,6 +77,19 @@ export function useEthersSigner() {
     }
 
     const provider = new ethers.BrowserProvider(ethereumProvider);
+
+    // Verify network connection
+    const network = await provider.getNetwork();
+    console.log('Connected to network:', {
+      chainId: Number(network.chainId),
+      name: network.name,
+      expectedChainId: MANTLE_SEPOLIA.chainId,
+    });
+
+    if (Number(network.chainId) !== MANTLE_SEPOLIA.chainId) {
+      throw new Error(`Wrong network. Expected Mantle Sepolia (${MANTLE_SEPOLIA.chainId}) but got ${network.chainId}`);
+    }
+
     return provider.getSigner();
   }, [wallets]);
 
@@ -357,6 +371,142 @@ export function useToken() {
 
   return {
     getBalance,
+  };
+}
+
+// Hook for batch prediction contract
+export interface BatchPredictionInput {
+  marketAddress: string;
+  optionIndex: number;
+  amount: string; // Amount in MNT (will be converted to wei)
+}
+
+export function useBatchPrediction() {
+  const { getSigner } = useEthersSigner();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Validate predictions before execution
+  const validatePredictions = useCallback(
+    async (predictions: BatchPredictionInput[]): Promise<{ valid: boolean[]; totalAmount: string }> => {
+      if (!CONTRACTS.BATCH_PREDICTION) {
+        throw new Error('BatchPrediction contract not deployed');
+      }
+
+      const provider = new ethers.JsonRpcProvider(MANTLE_SEPOLIA.rpcUrl);
+      const batchContract = new ethers.Contract(
+        CONTRACTS.BATCH_PREDICTION,
+        BATCH_PREDICTION_ABI,
+        provider
+      );
+
+      const markets = predictions.map((p) => p.marketAddress);
+      const amounts = predictions.map((p) => parseTokenAmount(p.amount));
+
+      const result = await batchContract.validatePredictions(markets, amounts);
+      return {
+        valid: result.valid as boolean[],
+        totalAmount: formatTokenAmount(result.totalAmount),
+      };
+    },
+    []
+  );
+
+  // Execute batch predictions
+  const executeBatchPrediction = useCallback(
+    async (predictions: BatchPredictionInput[]): Promise<string> => {
+      if (!CONTRACTS.BATCH_PREDICTION) {
+        throw new Error('BatchPrediction contract not deployed. Please deploy the contract first.');
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const signer = await getSigner();
+        const signerAddress = await signer.getAddress();
+        const batchContract = new ethers.Contract(
+          CONTRACTS.BATCH_PREDICTION,
+          BATCH_PREDICTION_ABI,
+          signer
+        );
+
+        // Prepare arrays for batchPredictSimple
+        const markets = predictions.map((p) => p.marketAddress);
+        const optionIndices = predictions.map((p) => p.optionIndex);
+        const amounts = predictions.map((p) => parseTokenAmount(p.amount));
+
+        // Calculate total amount
+        const totalAmount = amounts.reduce((sum, amt) => sum + amt, 0n);
+
+        console.log('=== BatchPrediction Debug ===');
+        console.log('Signer:', signerAddress);
+        console.log('Contract:', CONTRACTS.BATCH_PREDICTION);
+        console.log('Markets:', markets);
+        console.log('Option Indices:', optionIndices);
+        console.log('Amounts (wei):', amounts.map(a => a.toString()));
+        console.log('Total Amount (wei):', totalAmount.toString());
+        console.log('Total Amount (MNT):', formatTokenAmount(totalAmount));
+
+        // Check signer balance
+        const provider = signer.provider;
+        if (provider) {
+          const balance = await provider.getBalance(signerAddress);
+          console.log('Signer Balance (MNT):', formatTokenAmount(balance));
+          if (balance < totalAmount) {
+            throw new Error(`Insufficient balance. You have ${formatTokenAmount(balance)} MNT but need ${formatTokenAmount(totalAmount)} MNT`);
+          }
+        }
+
+        // Try to estimate gas first
+        console.log('Estimating gas...');
+        let gasLimit: bigint | undefined;
+        try {
+          const gasEstimate = await batchContract.batchPredictSimple.estimateGas(
+            markets,
+            optionIndices,
+            amounts,
+            { value: totalAmount }
+          );
+          console.log('Gas estimate:', gasEstimate.toString());
+          // Add 20% buffer
+          gasLimit = (gasEstimate * 120n) / 100n;
+        } catch (gasError) {
+          console.error('Gas estimation failed, using manual gas limit:', gasError);
+          // Use a high manual gas limit as fallback (500M gas - Mantle has high limits)
+          gasLimit = 500000000n;
+          console.log('Using fallback gas limit:', gasLimit.toString());
+        }
+
+        // Execute batch prediction
+        console.log('Sending transaction with gas limit:', gasLimit?.toString());
+        const tx = await batchContract.batchPredictSimple(
+          markets,
+          optionIndices,
+          amounts,
+          { value: totalAmount, gasLimit }
+        );
+
+        console.log('Transaction sent:', tx.hash);
+        const receipt = await tx.wait();
+        console.log('Transaction confirmed:', receipt.hash);
+        return receipt.hash;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to execute batch prediction';
+        setError(message);
+        throw err;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [getSigner]
+  );
+
+  return {
+    validatePredictions,
+    executeBatchPrediction,
+    isLoading,
+    error,
   };
 }
 

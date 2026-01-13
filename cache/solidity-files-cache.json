@@ -1,10 +1,10 @@
 {
   "_format": "hh-sol-cache-2",
   "files": {
-    "C:\\Users\\dipan\\OneDrive\\DevWorks\\Hackathons\\prediction-market\\contracts\\MockERC20.sol": {
-      "lastModificationDate": 1766229426122,
-      "contentHash": "9e3143b3bb2cf467ebefdcf06077bd30",
-      "sourceName": "contracts/MockERC20.sol",
+    "C:\\Users\\dipan\\OneDrive\\DevWorks\\Hackathons\\prediction-market\\contracts\\BatchPrediction.sol": {
+      "lastModificationDate": 1768253156751,
+      "contentHash": "7a818a7ba6b95d229031f529a47df576",
+      "sourceName": "contracts/BatchPrediction.sol",
       "solcConfig": {
         "version": "0.8.20",
         "settings": {
@@ -34,81 +34,8 @@
         "^0.8.20"
       ],
       "artifacts": [
-        "MockERC20"
-      ]
-    },
-    "C:\\Users\\dipan\\OneDrive\\DevWorks\\Hackathons\\prediction-market\\contracts\\PredictionMarket.sol": {
-      "lastModificationDate": 1766609976136,
-      "contentHash": "96d25823aa84bd280717fa0f7cc450bb",
-      "sourceName": "contracts/PredictionMarket.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "PredictionMarket"
-      ]
-    },
-    "C:\\Users\\dipan\\OneDrive\\DevWorks\\Hackathons\\prediction-market\\contracts\\PredictionMarketFactory.sol": {
-      "lastModificationDate": 1766610254160,
-      "contentHash": "73320a920395e1a6bd4606bf8f11d648",
-      "sourceName": "contracts/PredictionMarketFactory.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "./PredictionMarket.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "PredictionMarketFactory"
+        "BatchPrediction",
+        "IPredictionMarket"
       ]
     },
     "C:\\Users\\dipan\\OneDrive\\DevWorks\\Hackathons\\prediction-market\\contracts\\interfaces\\IOptimisticOracleV2.sol": {
@@ -448,6 +375,116 @@
       ],
       "artifacts": [
         "MockOptimisticOracle"
+      ]
+    },
+    "C:\\Users\\dipan\\OneDrive\\DevWorks\\Hackathons\\prediction-market\\contracts\\MockERC20.sol": {
+      "lastModificationDate": 1766229426122,
+      "contentHash": "9e3143b3bb2cf467ebefdcf06077bd30",
+      "sourceName": "contracts/MockERC20.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "MockERC20"
+      ]
+    },
+    "C:\\Users\\dipan\\OneDrive\\DevWorks\\Hackathons\\prediction-market\\contracts\\PredictionMarket.sol": {
+      "lastModificationDate": 1766609976136,
+      "contentHash": "96d25823aa84bd280717fa0f7cc450bb",
+      "sourceName": "contracts/PredictionMarket.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "PredictionMarket"
+      ]
+    },
+    "C:\\Users\\dipan\\OneDrive\\DevWorks\\Hackathons\\prediction-market\\contracts\\PredictionMarketFactory.sol": {
+      "lastModificationDate": 1766610254160,
+      "contentHash": "73320a920395e1a6bd4606bf8f11d648",
+      "sourceName": "contracts/PredictionMarketFactory.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./PredictionMarket.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "PredictionMarketFactory"
       ]
     }
   }

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePrivy } from "@privy-io/react-auth";
-import { Plus, User, LogOut, ChevronDown, LayoutDashboard, Menu, X, Search } from "lucide-react";
+import { Plus, User, LogOut, ChevronDown, LayoutDashboard, Menu, X, Search, Layers } from "lucide-react";
 import RegisterModal from "./RegisterModal";
 
 interface UserData {
@@ -132,10 +132,19 @@ const Navbar = () => {
 
         {/* Right Section - Desktop */}
         <div className="hidden md:flex items-center gap-2 lg:gap-4">
+          {/* Multi-Predict Button */}
+          <Link
+            href="/multi-predict"
+            className="flex items-center gap-2 bg-muted hover:bg-muted/80 border border-border rounded-2xl px-3 lg:px-4 py-2 text-sm font-medium text-foreground transition-all"
+          >
+            <Layers className="h-4 w-4" />
+            <span className="hidden lg:inline">Multi-Predict</span>
+          </Link>
+
           {/* Create Market Button */}
           <Link
             href="/create"
-            className="flex items-center gap-2 bg-primary hover:bg-primary/90 rounded-full px-3 lg:px-4 py-2 text-sm font-medium text-primary-foreground transition-all"
+            className="flex items-center gap-2 bg-primary hover:bg-primary/90 rounded-2xl px-3 lg:px-4 py-2 text-sm font-medium text-primary-foreground transition-all"
           >
             <Plus className="h-4 w-4" />
             <span className="hidden lg:inline">Create Market</span>
@@ -148,7 +157,7 @@ const Navbar = () => {
               type="button"
               onClick={handleWalletClick}
               disabled={!ready || isCheckingUser}
-              className="flex items-center gap-2 bg-muted hover:bg-muted/80 border border-border rounded-full px-3 lg:px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 bg-muted hover:bg-muted/80 border border-border rounded-2xl px-3 lg:px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {!ready || isCheckingUser ? (
                 "Loading..."
@@ -266,6 +275,16 @@ const Navbar = () => {
                 </div>
               </div>
             )}
+
+            {/* Multi-Predict */}
+            <Link
+              href="/multi-predict"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-3 p-4 rounded-xl bg-muted hover:bg-muted/80 text-foreground font-medium transition-colors border border-primary/30"
+            >
+              <Layers className="h-5 w-5 text-primary" />
+              Multi-Predict
+            </Link>
 
             {/* Create Market */}
             <Link

@@ -8,7 +8,6 @@ import type {
   FunctionFragment,
   Result,
   Interface,
-  AddressLike,
   ContractRunner,
   ContractMethod,
   Listener,
@@ -21,37 +20,32 @@ import type {
   TypedContractMethod,
 } from "../../common";
 
-export interface IERC20Interface extends Interface {
+export interface IPredictionMarketInterface extends Interface {
   getFunction(
-    nameOrSignature: "balanceOf" | "transfer" | "transferFrom"
+    nameOrSignature: "buyShares" | "isOpenForBetting"
   ): FunctionFragment;
 
   encodeFunctionData(
-    functionFragment: "balanceOf",
-    values: [AddressLike]
+    functionFragment: "buyShares",
+    values: [BigNumberish]
   ): string;
   encodeFunctionData(
-    functionFragment: "transfer",
-    values: [AddressLike, BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "transferFrom",
-    values: [AddressLike, AddressLike, BigNumberish]
+    functionFragment: "isOpenForBetting",
+    values?: undefined
   ): string;
 
-  decodeFunctionResult(functionFragment: "balanceOf", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "transfer", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "buyShares", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "transferFrom",
+    functionFragment: "isOpenForBetting",
     data: BytesLike
   ): Result;
 }
 
-export interface IERC20 extends BaseContract {
-  connect(runner?: ContractRunner | null): IERC20;
+export interface IPredictionMarket extends BaseContract {
+  connect(runner?: ContractRunner | null): IPredictionMarket;
   waitForDeployment(): Promise<this>;
 
-  interface: IERC20Interface;
+  interface: IPredictionMarketInterface;
 
   queryFilter<TCEvent extends TypedContractEvent>(
     event: TCEvent,
@@ -90,41 +84,24 @@ export interface IERC20 extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
-  balanceOf: TypedContractMethod<[account: AddressLike], [bigint], "view">;
-
-  transfer: TypedContractMethod<
-    [to: AddressLike, amount: BigNumberish],
-    [boolean],
-    "nonpayable"
+  buyShares: TypedContractMethod<
+    [optionIndex: BigNumberish],
+    [void],
+    "payable"
   >;
 
-  transferFrom: TypedContractMethod<
-    [from: AddressLike, to: AddressLike, amount: BigNumberish],
-    [boolean],
-    "nonpayable"
-  >;
+  isOpenForBetting: TypedContractMethod<[], [boolean], "view">;
 
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
   ): T;
 
   getFunction(
-    nameOrSignature: "balanceOf"
-  ): TypedContractMethod<[account: AddressLike], [bigint], "view">;
+    nameOrSignature: "buyShares"
+  ): TypedContractMethod<[optionIndex: BigNumberish], [void], "payable">;
   getFunction(
-    nameOrSignature: "transfer"
-  ): TypedContractMethod<
-    [to: AddressLike, amount: BigNumberish],
-    [boolean],
-    "nonpayable"
-  >;
-  getFunction(
-    nameOrSignature: "transferFrom"
-  ): TypedContractMethod<
-    [from: AddressLike, to: AddressLike, amount: BigNumberish],
-    [boolean],
-    "nonpayable"
-  >;
+    nameOrSignature: "isOpenForBetting"
+  ): TypedContractMethod<[], [boolean], "view">;
 
   filters: {};
 }

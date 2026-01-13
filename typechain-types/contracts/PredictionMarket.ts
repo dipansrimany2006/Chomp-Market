@@ -32,7 +32,6 @@ export interface PredictionMarketInterface extends Interface {
       | "cancelMarket"
       | "claimRefund"
       | "claimWinnings"
-      | "collateralToken"
       | "createdAt"
       | "creator"
       | "endTime"
@@ -56,7 +55,10 @@ export interface PredictionMarketInterface extends Interface {
       | "optionLabels"
       | "question"
       | "resolveMarket"
+      | "resolveMarketFromResolver"
+      | "resolver"
       | "sellShares"
+      | "setResolver"
       | "shares"
       | "totalShares"
       | "winningOptions"
@@ -75,7 +77,7 @@ export interface PredictionMarketInterface extends Interface {
 
   encodeFunctionData(
     functionFragment: "buyShares",
-    values: [BigNumberish, BigNumberish]
+    values: [BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "calculatePotentialPayout",
@@ -95,10 +97,6 @@ export interface PredictionMarketInterface extends Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "claimWinnings",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "collateralToken",
     values?: undefined
   ): string;
   encodeFunctionData(functionFragment: "createdAt", values?: undefined): string;
@@ -179,8 +177,17 @@ export interface PredictionMarketInterface extends Interface {
     values: [BigNumberish[]]
   ): string;
   encodeFunctionData(
+    functionFragment: "resolveMarketFromResolver",
+    values: [BigNumberish[]]
+  ): string;
+  encodeFunctionData(functionFragment: "resolver", values?: undefined): string;
+  encodeFunctionData(
     functionFragment: "sellShares",
     values: [BigNumberish, BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setResolver",
+    values: [AddressLike]
   ): string;
   encodeFunctionData(
     functionFragment: "shares",
@@ -214,10 +221,6 @@ export interface PredictionMarketInterface extends Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "claimWinnings",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "collateralToken",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "createdAt", data: BytesLike): Result;
@@ -291,7 +294,16 @@ export interface PredictionMarketInterface extends Interface {
     functionFragment: "resolveMarket",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "resolveMarketFromResolver",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "resolver", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "sellShares", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "setResolver",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "shares", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "totalShares",
@@ -473,9 +485,9 @@ export interface PredictionMarket extends BaseContract {
   ): Promise<this>;
 
   buyShares: TypedContractMethod<
-    [optionIndex: BigNumberish, amount: BigNumberish],
+    [optionIndex: BigNumberish],
     [void],
-    "nonpayable"
+    "payable"
   >;
 
   calculatePotentialPayout: TypedContractMethod<
@@ -495,8 +507,6 @@ export interface PredictionMarket extends BaseContract {
   claimRefund: TypedContractMethod<[], [void], "nonpayable">;
 
   claimWinnings: TypedContractMethod<[], [void], "nonpayable">;
-
-  collateralToken: TypedContractMethod<[], [string], "view">;
 
   createdAt: TypedContractMethod<[], [bigint], "view">;
 
@@ -588,8 +598,22 @@ export interface PredictionMarket extends BaseContract {
     "nonpayable"
   >;
 
+  resolveMarketFromResolver: TypedContractMethod<
+    [winnerIndices: BigNumberish[]],
+    [void],
+    "nonpayable"
+  >;
+
+  resolver: TypedContractMethod<[], [string], "view">;
+
   sellShares: TypedContractMethod<
     [optionIndex: BigNumberish, sharesAmount: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+
+  setResolver: TypedContractMethod<
+    [_resolver: AddressLike],
     [void],
     "nonpayable"
   >;
@@ -610,11 +634,7 @@ export interface PredictionMarket extends BaseContract {
 
   getFunction(
     nameOrSignature: "buyShares"
-  ): TypedContractMethod<
-    [optionIndex: BigNumberish, amount: BigNumberish],
-    [void],
-    "nonpayable"
-  >;
+  ): TypedContractMethod<[optionIndex: BigNumberish], [void], "payable">;
   getFunction(
     nameOrSignature: "calculatePotentialPayout"
   ): TypedContractMethod<
@@ -638,9 +658,6 @@ export interface PredictionMarket extends BaseContract {
   getFunction(
     nameOrSignature: "claimWinnings"
   ): TypedContractMethod<[], [void], "nonpayable">;
-  getFunction(
-    nameOrSignature: "collateralToken"
-  ): TypedContractMethod<[], [string], "view">;
   getFunction(
     nameOrSignature: "createdAt"
   ): TypedContractMethod<[], [bigint], "view">;
@@ -747,12 +764,21 @@ export interface PredictionMarket extends BaseContract {
     nameOrSignature: "resolveMarket"
   ): TypedContractMethod<[winnerIndices: BigNumberish[]], [void], "nonpayable">;
   getFunction(
+    nameOrSignature: "resolveMarketFromResolver"
+  ): TypedContractMethod<[winnerIndices: BigNumberish[]], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "resolver"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
     nameOrSignature: "sellShares"
   ): TypedContractMethod<
     [optionIndex: BigNumberish, sharesAmount: BigNumberish],
     [void],
     "nonpayable"
   >;
+  getFunction(
+    nameOrSignature: "setResolver"
+  ): TypedContractMethod<[_resolver: AddressLike], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "shares"
   ): TypedContractMethod<
