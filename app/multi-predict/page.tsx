@@ -17,6 +17,7 @@ import {
   BarChart3,
   Clock,
   Rocket,
+  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import PageTransition from '@/components/ui/page-transition';
@@ -24,7 +25,7 @@ import { Prediction, PollFromAPI, transformPollToPrediction } from '@/lib/predic
 import { useUserBalance, useCategories } from '@/hooks/useQueries';
 import { MANTLE_SEPOLIA, CONTRACTS, getMarketContract } from '@/lib/contracts';
 import { useBatchPrediction } from '@/hooks/useContracts';
-
+import { toast } from "sonner";
 // Color palette for options
 const OPTION_COLORS = [
   { bg: 'bg-[#00bf63]', bgLight: 'bg-[#00bf63]/20', text: 'text-[#00bf63]', hex: '#00bf63' },
@@ -62,7 +63,6 @@ export default function MultiPredictPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   const categories = ['All', ...(categoriesData?.categories || [])];
 
@@ -151,30 +151,28 @@ export default function MultiPredictPage() {
   };
 
   const validateStep = (step: number): boolean => {
-    setError(null);
-
     switch (step) {
       case 1:
         if (!depositAmount || parseFloat(depositAmount) <= 0) {
-          setError('Please enter a valid deposit amount');
+          toast.error('Please enter a valid deposit amount');
           return false;
         }
         if (balance && parseFloat(depositAmount) > parseFloat(balance)) {
-          setError('Insufficient balance');
+          toast.error('Insufficient balance');
           return false;
         }
         return true;
       case 2:
         if (selectedMarkets.length === 0) {
-          setError('Please select at least one market');
+          toast.error('Please select at least one market');
           return false;
         }
         if (totalAllocatedPercent === 0) {
-          setError('Please allocate some percentage to your predictions');
+          toast.error('Please allocate some percentage to your predictions');
           return false;
         }
         if (totalAllocatedPercent > 100) {
-          setError('Total allocation cannot exceed 100%');
+          toast.error('Total allocation cannot exceed 100%');
           return false;
         }
         return true;
@@ -190,7 +188,6 @@ export default function MultiPredictPage() {
   };
 
   const handleBack = () => {
-    setError(null);
     setCurrentStep((prev) => Math.max(prev - 1, 1));
   };
 
@@ -204,17 +201,16 @@ export default function MultiPredictPage() {
 
   const handleAddMarket = async (prediction: Prediction) => {
     if (!prediction.contractAddress) {
-      setError('This market does not have an on-chain contract');
+      toast.error('This market does not have an on-chain contract');
       return;
     }
 
     setIsCheckingMarket(prediction.id);
-    setError(null);
 
     try {
       const isOpen = await checkMarketOpen(prediction.contractAddress);
       if (!isOpen) {
-        setError('This market is not open for betting (expired or resolved)');
+        toast.error('This market is not open for betting (expired or resolved)');
         return;
       }
 
@@ -227,7 +223,7 @@ export default function MultiPredictPage() {
         }
       ]);
     } catch (err) {
-      setError('Failed to verify market status');
+      toast.error('Failed to verify market status');
       console.error(err);
     } finally {
       setIsCheckingMarket(null);
@@ -262,18 +258,17 @@ export default function MultiPredictPage() {
     }
 
     if (!user?.wallet?.address) {
-      setError('Please connect your wallet');
+      toast.error('Please connect your wallet');
       return;
     }
 
     // Check if batch prediction contract is deployed
     if (!CONTRACTS.BATCH_PREDICTION) {
-      setError('BatchPrediction contract not deployed. Please deploy the contract first and add its address to lib/contracts.ts');
+      toast.error('BatchPrediction contract not deployed. Please deploy the contract first and add its address to lib/contracts.ts');
       return;
     }
 
     setIsSubmitting(true);
-    setError(null);
 
     try {
       // Prepare the batch prediction data - filter markets with valid contract addresses and allocation > 0
@@ -282,7 +277,7 @@ export default function MultiPredictPage() {
       );
 
       if (validMarkets.length === 0) {
-        setError('No valid markets selected. Markets must have contract addresses and allocation > 0.');
+        toast.error('No valid markets selected. Markets must have contract addresses and allocation > 0.');
         setIsSubmitting(false);
         return;
       }
@@ -296,7 +291,7 @@ export default function MultiPredictPage() {
       const closedMarkets = validMarkets.filter((_, i) => !openChecks[i]);
       if (closedMarkets.length > 0) {
         const closedNames = closedMarkets.map(m => m.prediction.title).join(', ');
-        setError(`These markets are no longer open for betting: ${closedNames}`);
+        toast.error(`These markets are no longer open for betting: ${closedNames}`);
         setIsSubmitting(false);
         return;
       }
@@ -312,7 +307,7 @@ export default function MultiPredictPage() {
       const invalidOptionMarkets = validMarkets.filter((_, i) => !optionChecks[i]);
       if (invalidOptionMarkets.length > 0) {
         const invalidNames = invalidOptionMarkets.map(m => m.prediction.title).join(', ');
-        setError(`Invalid option selected for: ${invalidNames}`);
+        toast.error(`Invalid option selected for: ${invalidNames}`);
         setIsSubmitting(false);
         return;
       }
@@ -331,6 +326,7 @@ export default function MultiPredictPage() {
 
       setTxHash(hash);
       setIsSuccess(true);
+      toast.success('Predictions submitted successfully!');
 
       setTimeout(() => {
         router.push('/');
@@ -372,7 +368,7 @@ export default function MultiPredictPage() {
         }
       }
 
-      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -477,14 +473,6 @@ export default function MultiPredictPage() {
           })}
         </div>
       </div>
-
-      {/* Error Display */}
-      {error && (
-        <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center gap-3">
-          <AlertCircle className="h-5 w-5 text-red-500 shrink-0" />
-          <p className="text-red-400 text-sm">{error}</p>
-        </div>
-      )}
 
       {/* Step Content */}
       <div className="min-h-[400px]">
@@ -838,7 +826,7 @@ export default function MultiPredictPage() {
 
         {/* Step 3: Review & Submit */}
         {currentStep === 3 && (
-          <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+          <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             {/* Summary Card */}
             <div className="rounded-2xl border border-primary/30 bg-neutral-900 backdrop-blur-xl p-6">
               <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
@@ -883,55 +871,134 @@ export default function MultiPredictPage() {
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-foreground">Prediction Breakdown</h3>
 
-              {selectedMarkets.filter(m => m.allocationPercent > 0).map((market, index) => {
-                const options = market.prediction.options || ['Yes', 'No'];
-                const odds = market.prediction.odds || options.map(() => 100 / options.length);
-                const selectedOption = options[market.selectedOptionIndex];
-                const selectedOdds = odds[market.selectedOptionIndex];
-                const allocatedAmount = (depositValue * market.allocationPercent) / 100;
-                const potentialReturn = allocatedAmount / (selectedOdds / 100);
-                const color = OPTION_COLORS[market.selectedOptionIndex % OPTION_COLORS.length];
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {selectedMarkets.filter(m => m.allocationPercent > 0).map((market) => {
+                  const options = market.prediction.options || ['Yes', 'No'];
+                  const odds = market.prediction.odds || options.map(() => 100 / options.length);
+                  const selectedOption = options[market.selectedOptionIndex];
+                  const selectedOdds = odds[market.selectedOptionIndex];
+                  const allocatedAmount = (depositValue * market.allocationPercent) / 100;
+                  const color = OPTION_COLORS[market.selectedOptionIndex % OPTION_COLORS.length];
 
-                return (
-                  <div
-                    key={market.prediction.id}
-                    className="rounded-xl border border-border bg-neutral-900 p-4"
-                  >
-                    <div className="flex items-start gap-3 mb-4">
-                      <span className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-primary text-sm font-semibold shrink-0">
-                        {index + 1}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-semibold text-foreground line-clamp-2">
+                  // Helper to format wallet address as username
+                  const formatAddress = (address?: string): string => {
+                    if (!address) return '@anonymous';
+                    return `@${address.slice(0, 6)}...${address.slice(-4)}`;
+                  };
+
+                  // Helper to get relative time
+                  const getRelativeTime = (dateString?: string): string => {
+                    if (!dateString) return '';
+                    const date = new Date(dateString);
+                    const now = new Date();
+                    const diffMs = now.getTime() - date.getTime();
+                    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                    if (diffDays === 0) return 'today';
+                    if (diffDays === 1) return 'yesterday';
+                    if (diffDays < 7) return `${diffDays} days ago`;
+                    if (diffDays < 30) return `${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) > 1 ? 's' : ''} ago`;
+                    return `${Math.floor(diffDays / 30)} month${Math.floor(diffDays / 30) > 1 ? 's' : ''} ago`;
+                  };
+
+                  return (
+                    <div
+                      key={market.prediction.id}
+                      className="bg-neutral-900 backdrop-blur-xl rounded-xl sm:rounded-2xl border border-border p-4 sm:p-5"
+                    >
+                      {/* Header: Creator + Timestamp */}
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center overflow-hidden">
+                            <span className="text-primary-foreground text-xs font-medium">
+                              {market.prediction.creatorAddress ? market.prediction.creatorAddress.slice(2, 4).toUpperCase() : 'AN'}
+                            </span>
+                          </div>
+                          <span className="text-foreground/90 text-sm font-medium">
+                            {formatAddress(market.prediction.creatorAddress)}
+                          </span>
+                        </div>
+                        <span className="text-muted-foreground text-xs">
+                          {getRelativeTime(market.prediction.createdAt)}
+                        </span>
+                      </div>
+
+                      {/* Badges Row */}
+                      <div className="flex items-center gap-2 mb-4 flex-wrap">
+                        <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-primary/20 text-primary flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                          Active
+                        </span>
+                        <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground">
+                          MNT
+                        </span>
+                        <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-primary/20 text-primary">
+                          {market.prediction.category}
+                        </span>
+                      </div>
+
+                      {/* Content: Image + Title */}
+                      <div className="flex gap-4 mb-4">
+                        <div className="w-16 h-16 rounded-xl overflow-hidden bg-muted shrink-0">
+                          {market.prediction.imageUrl ? (
+                            <img
+                              src={market.prediction.imageUrl}
+                              alt={market.prediction.title}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-muted" />
+                          )}
+                        </div>
+                        <h4 className="text-base font-semibold text-foreground leading-snug line-clamp-2 flex-1">
                           {market.prediction.title}
                         </h4>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {market.prediction.category}
-                        </p>
                       </div>
-                    </div>
 
-                    <div className="grid grid-cols-2 gap-4 p-3 rounded-xl bg-neutral-800">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Your Pick</p>
-                        <p className={cn('font-semibold', color.text)}>{selectedOption}</p>
+                      {/* Stats Row */}
+                      <div className="flex items-center gap-4 mb-4 text-xs">
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <BarChart3 className="w-3.5 h-3.5" />
+                          <span>{market.prediction.volume}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <Clock className="w-3.5 h-3.5" />
+                          <span>Active</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-primary">
+                          <Sparkles className="w-3.5 h-3.5" />
+                          <span>{Math.abs(market.prediction.priceChange || 0).toFixed(1)}%</span>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Current Odds</p>
-                        <p className="font-semibold text-foreground">{Math.round(selectedOdds)}%</p>
+
+                      {/* Amount Bar (instead of Conviction) */}
+                      <div className="mb-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-muted-foreground text-sm">Amount</span>
+                          <span className="text-foreground font-semibold text-sm">
+                            {market.allocationPercent}% ({allocatedAmount.toFixed(4)} MNT)
+                          </span>
+                        </div>
+                        <div className="h-2 rounded-full bg-muted overflow-hidden">
+                          <div
+                            className="h-full transition-all duration-300 bg-primary"
+                            style={{ width: `${market.allocationPercent}%` }}
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Amount</p>
-                        <p className="font-semibold text-foreground">{allocatedAmount.toFixed(4)} MNT ({market.allocationPercent}%)</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Potential Win</p>
-                        <p className="font-semibold text-green-500">~{potentialReturn.toFixed(4)} MNT</p>
+
+                      {/* Selected Option Display */}
+                      <div
+                        className={cn(
+                          'w-full py-3.5 px-4 rounded-xl text-sm font-semibold text-white text-center',
+                          color.bg
+                        )}
+                      >
+                        {selectedOption} ({Math.round(selectedOdds)}%)
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
 
             {/* Submit Warning */}
@@ -952,7 +1019,7 @@ export default function MultiPredictPage() {
       </div>
 
       {/* Navigation Buttons */}
-      <div className="flex gap-4 mt-8 max-w-2xl mx-auto">
+      <div className="flex gap-4 mt-8 max-w-4xl mx-auto">
         {currentStep > 1 && (
           <button
             type="button"
@@ -997,7 +1064,7 @@ export default function MultiPredictPage() {
       </div>
 
       {/* Footer Note */}
-      <p className="text-center text-xs text-muted-foreground mt-6 max-w-2xl mx-auto">
+      <p className="text-center text-xs text-muted-foreground mt-6 max-w-4xl mx-auto">
         All predictions are executed in a single transaction on Mantle Sepolia testnet.
       </p>
     </PageTransition>

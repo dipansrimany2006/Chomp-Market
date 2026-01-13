@@ -5,6 +5,7 @@ import Providers from "@/components/Providers";
 import Navbar from "@/components/Navbar";
 import { ShootingStars } from "@/components/ui/shooting-stars";
 import { StarsBackground } from "@/components/ui/stars-background";
+import { Toaster } from "sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,6 +33,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background min-h-screen`}
       >
         <Providers>
+          <Toaster position="bottom-right" theme="dark" richColors toastOptions={{ className: 'z-[9999]' }} />
           <div className="relative min-h-screen">
             <div className="dark:block hidden">
               <ShootingStars />
