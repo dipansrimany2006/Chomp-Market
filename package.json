@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "dev:webpack": "next dev --webpack",
-    "build": "next build --webpack",
+    "build": "hardhat compile && next build --webpack",
     "start": "next start",
     "lint": "eslint",
     "compile": "hardhat compile",

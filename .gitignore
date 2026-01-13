@@ -48,3 +48,8 @@ mocks
 
 #reviews
 Chomp Market Reviews.txt
+
+# hardhat
+artifacts
+cache
+typechain-types
