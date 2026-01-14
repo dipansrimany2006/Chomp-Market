@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { usePrivy } from '@privy-io/react-auth';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import {
   ArrowLeft,
   Share2,
@@ -310,6 +311,30 @@ export default function PredictionDetailPage() {
     }
   };
 
+  // Handle share - Generate MLink URL and copy to clipboard
+  const handleShare = async () => {
+    const pollId = params.id as string;
+
+    // Construct the action URL for this prediction
+    const actionUrl = `${window.location.origin}/api/actions/prediction/${pollId}`;
+
+    // Encode the action URL and create the MLink shareable URL
+    const mlinkUrl = `https://mlink-dashboard.vercel.app/mlink?action=${encodeURIComponent(actionUrl)}`;
+
+    try {
+      await navigator.clipboard.writeText(mlinkUrl);
+      toast.success('Link copied to clipboard!', {
+        description: 'Share this link on Twitter to let others trade on this market.',
+      });
+    } catch (err) {
+      console.error('Failed to copy link:', err);
+      // Fallback: show the link in the toast for manual copying
+      toast.error('Failed to copy link', {
+        description: mlinkUrl,
+      });
+    }
+  };
+
   // Format time ago
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
@@ -520,7 +545,11 @@ export default function PredictionDetailPage() {
             </div>
 
             <div className="hidden sm:flex items-center gap-2">
-              <button className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
+              <button
+                onClick={handleShare}
+                className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                title="Share on Twitter via MLink"
+              >
                 <Share2 className="h-5 w-5" />
               </button>
               <button className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
