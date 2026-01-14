@@ -13,6 +13,7 @@ import {
   Filler,
 } from "chart.js";
 import { Line } from "react-chartjs-2";
+import type { TooltipItem } from "chart.js";
 import { cn } from "@/lib/utils";
 import {
   Card,
@@ -143,8 +144,9 @@ const PriceChart: React.FC<PriceChartProps> = ({
         padding: 12,
         cornerRadius: 8,
         callbacks: {
-          label: (context: { dataset: { label?: string }; parsed: { y: number } }) => {
-            return `${context.dataset.label}: ${context.parsed.y.toFixed(1)}%`;
+          label: (context: TooltipItem<"line">) => {
+            const value = context.parsed.y ?? 0;
+            return `${context.dataset.label}: ${value.toFixed(1)}%`;
           },
         },
       },
