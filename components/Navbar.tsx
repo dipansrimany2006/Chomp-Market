@@ -103,13 +103,6 @@ const Navbar = () => {
         {/* Logo */}
         <Link href="/" className="flex items-center shrink-0">
           <Image
-            src="/chomp.png"
-            alt="Chomp Market"
-            width={40}
-            height={10}
-            className="sm:w-[50px]"
-          />
-          <Image
             src="/logo.png"
             alt="Logo"
             width={60}
