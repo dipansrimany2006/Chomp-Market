@@ -19,6 +19,7 @@
     "node": "hardhat node"
   },
   "dependencies": {
+    "@dipansrimany/mlink-sdk": "^0.3.1",
     "@openzeppelin/contracts": "^5.4.0",
     "@privy-io/react-auth": "^3.9.0",
     "@radix-ui/react-dialog": "^1.1.15",
@@ -36,6 +37,7 @@
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
+    "ethers": "^6.16.0",
     "express": "^5.2.1",
     "lightweight-charts": "^5.1.0",
     "lucide-react": "^0.561.0",
