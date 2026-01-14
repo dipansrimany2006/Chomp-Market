@@ -2,6 +2,26 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/db.connection';
 import Poll from '@/model/poll.model';
 
+// Define the poll type based on the model
+interface PollDocument {
+  _id: string;
+  question: string;
+  category: string;
+  resolutionCriteria: string;
+  resolutionSource?: string;
+  image?: string;
+  options: string[];
+  winningOptionIndices: number[];
+  pollEnd: Date;
+  odds?: number[];
+  totalVolume: number;
+  totalTrades: number;
+  status: string;
+  contractAddress?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // GET /api/actions/prediction/[id] - Get action metadata for a prediction market
 export async function GET(
   request: NextRequest,
@@ -12,7 +32,7 @@ export async function GET(
 
     await connectDB();
 
-    const poll = await Poll.findById(id).lean();
+    const poll = await Poll.findById(id).lean() as PollDocument | null;
 
     if (!poll) {
       return NextResponse.json(
@@ -26,33 +46,23 @@ export async function GET(
     const protocol = host.includes('localhost') ? 'http' : 'https';
     const baseUrl = `${protocol}://${host}`;
 
-    // Return action metadata in a format compatible with MLink
+    // Build actions array from poll options
+    const actions = poll.options?.map((option: string, index: number) => ({
+      label: `Buy ${option}`,
+      href: `${baseUrl}/prediction/${id}?option=${index}`,
+    })) || [
+      { label: 'Buy Yes', href: `${baseUrl}/prediction/${id}?option=0` },
+      { label: 'Buy No', href: `${baseUrl}/prediction/${id}?option=1` },
+    ];
+
+    // Return action metadata in the format expected by MLink
     const actionMetadata = {
       type: 'action',
-      icon: poll.imageUrl || `${baseUrl}/logo.png`,
-      title: poll.title,
-      description: poll.description || `Predict the outcome: ${poll.title}`,
+      icon: poll.image || `${baseUrl}/logo.png`,
+      title: poll.question,
+      description: poll.resolutionCriteria || `Predict the outcome: ${poll.question}`,
       label: 'Trade Now',
-      links: {
-        actions: poll.options?.map((option: string, index: number) => ({
-          label: `Buy ${option}`,
-          href: `${baseUrl}/prediction/${id}?option=${index}`,
-        })) || [
-          { label: 'Buy Yes', href: `${baseUrl}/prediction/${id}?option=0` },
-          { label: 'Buy No', href: `${baseUrl}/prediction/${id}?option=1` },
-        ],
-      },
-      // Additional metadata
-      metadata: {
-        marketId: id,
-        category: poll.category,
-        endDate: poll.endDate,
-        status: poll.status,
-        contractAddress: poll.contractAddress,
-        options: poll.options,
-        totalVolume: poll.totalVolume,
-        totalTrades: poll.totalTrades,
-      },
+      actions: actions,
     };
 
     return NextResponse.json(actionMetadata, {
