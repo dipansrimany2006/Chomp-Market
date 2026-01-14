@@ -311,26 +311,19 @@ export default function PredictionDetailPage() {
     }
   };
 
-  // Handle share - Generate MLink URL and copy to clipboard
+  // Handle share - Copy market link to clipboard
   const handleShare = async () => {
-    const pollId = params.id as string;
-
-    // Construct the action URL for this prediction
-    const actionUrl = `${window.location.origin}/api/actions/prediction/${pollId}`;
-
-    // Encode the action URL and create the MLink shareable URL
-    const mlinkUrl = `https://mlink-dashboard.vercel.app/mlink?action=${encodeURIComponent(actionUrl)}`;
+    const marketUrl = `${window.location.origin}/prediction/${params.id}`;
 
     try {
-      await navigator.clipboard.writeText(mlinkUrl);
+      await navigator.clipboard.writeText(marketUrl);
       toast.success('Link copied to clipboard!', {
-        description: 'Share this link on Twitter to let others trade on this market.',
+        description: 'Share this link to let others view this market.',
       });
     } catch (err) {
       console.error('Failed to copy link:', err);
-      // Fallback: show the link in the toast for manual copying
       toast.error('Failed to copy link', {
-        description: mlinkUrl,
+        description: marketUrl,
       });
     }
   };
@@ -548,7 +541,7 @@ export default function PredictionDetailPage() {
               <button
                 onClick={handleShare}
                 className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-                title="Share on Twitter via MLink"
+                title="Copy market link"
               >
                 <Share2 className="h-5 w-5" />
               </button>
