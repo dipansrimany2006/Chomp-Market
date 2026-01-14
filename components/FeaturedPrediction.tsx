@@ -248,7 +248,7 @@ const FeaturedPrediction: React.FC<FeaturedPredictionProps> = ({ predictions, cl
       />
 
       {/* Gradient Overlay for text readability */}
-      <div className="absolute inset-0 bg-gradient-to-r via-white/90 via-0% to-transparent border border-border" />
+      <div className="absolute inset-0 bg-gradient-to-r via-black/90 via-0% to-transparent border border-border" />
 
       {/* Content Container - Left portion */}
       <div className="relative h-full w-full md:w-1/2 p-4 md:p-6 flex flex-col justify-between">
@@ -268,22 +268,22 @@ const FeaturedPrediction: React.FC<FeaturedPredictionProps> = ({ predictions, cl
               )} />
               {statusDisplay}
             </span>
-            <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-black/10 text-black/80 border border-black/10">
+            <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-white/10 text-white/80 border border-white/10">
               {prediction.category}
             </span>
           </div>
 
           {/* Creator Info */}
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center overflow-hidden border-2 border-black/20">
-              <span className="text-white text-xs font-medium">
+            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center overflow-hidden border-2 border-white/20">
+              <span className="text-black text-xs font-medium">
                 {prediction.creatorAddress ? prediction.creatorAddress.slice(2, 4).toUpperCase() : 'AN'}
               </span>
             </div>
-            <span className="text-black/90 text-sm font-medium">
+            <span className="text-white/90 text-sm font-medium">
               {formatAddress(prediction.creatorAddress)}
             </span>
-            <span className="text-black/50 text-xs">
+            <span className="text-white/50 text-xs">
               {getRelativeTime(prediction.createdAt)}
             </span>
           </div>
@@ -294,13 +294,13 @@ const FeaturedPrediction: React.FC<FeaturedPredictionProps> = ({ predictions, cl
           {/* Meta Badges Row */}
           <div className="flex items-center gap-1.5 md:gap-2 mb-3 md:mb-4 flex-wrap">
             {/* Volume Badge */}
-            <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-black/5 text-black/70 border border-black/10 flex items-center gap-1">
+            <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-white/10 text-white/70 border border-white/10 flex items-center gap-1">
               <BarChart3 className="w-3 h-3" />
               {prediction.volume}
             </span>
 
             {/* Currency Badge */}
-            <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-black/5 text-black/70 border border-black/10 flex items-center gap-1">
+            <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-white/10 text-white/70 border border-white/10 flex items-center gap-1">
               <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
                 <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.2"/>
                 <path d="M12 4C7.58172 4 4 7.58172 4 12C4 16.4183 7.58172 20 12 20C16.4183 20 20 16.4183 20 12C20 7.58172 16.4183 4 12 4ZM12.5 6.5V7.5C14.0569 7.74835 15.25 9.09337 15.25 10.7C15.25 10.9761 15.0261 11.2 14.75 11.2C14.4739 11.2 14.25 10.9761 14.25 10.7C14.25 9.5402 13.3598 8.6 12.2 8.5V11.4L12.5 11.5C14.0569 11.7484 15.25 13.0934 15.25 14.7C15.25 16.3066 14.0569 17.6516 12.5 17.9V18.5C12.5 18.7761 12.2761 19 12 19C11.7239 19 11.5 18.7761 11.5 18.5V17.9C9.94315 17.6516 8.75 16.3066 8.75 14.7C8.75 14.4239 8.97386 14.2 9.25 14.2C9.52614 14.2 9.75 14.4239 9.75 14.7C9.75 15.8598 10.6402 16.8 11.8 16.9V13.6L11.5 13.5C9.94315 13.2516 8.75 11.9066 8.75 10.3C8.75 8.69337 9.94315 7.34835 11.5 7.1V6.5C11.5 6.22386 11.7239 6 12 6C12.2761 6 12.5 6.22386 12.5 6.5Z" fill="currentColor"/>
@@ -309,26 +309,26 @@ const FeaturedPrediction: React.FC<FeaturedPredictionProps> = ({ predictions, cl
             </span>
 
             {/* Time Remaining Badge */}
-            <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-black/5 text-black/70 border border-black/10 flex items-center gap-1">
+            <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-white/10 text-white/70 border border-white/10 flex items-center gap-1">
               <Clock className="w-3 h-3" />
               {getTimeRemaining(prediction.endDate)}
             </span>
 
             {/* Free Badge */}
-            <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-black/5 text-black/70 border border-black/10 flex items-center gap-1">
+            <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-white/10 text-white/70 border border-white/10 flex items-center gap-1">
               <Sparkles className="w-3 h-3" />
               Free
             </span>
           </div>
 
           {/* Title */}
-          <h2 className="text-lg md:text-2xl lg:text-3xl font-bold text-black mb-2 md:mb-3 line-clamp-2">
+          <h2 className="text-lg md:text-2xl lg:text-3xl font-bold text-white mb-2 md:mb-3 line-clamp-2">
             {prediction.title}
           </h2>
 
           {/* Description - Hidden on mobile, truncated with ellipsis */}
           {prediction.description && (
-            <p className="hidden md:block text-black/60 text-sm overflow-hidden text-ellipsis" style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
+            <p className="hidden md:block text-white/60 text-sm overflow-hidden text-ellipsis" style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
               {prediction.description}
             </p>
           )}
@@ -336,10 +336,10 @@ const FeaturedPrediction: React.FC<FeaturedPredictionProps> = ({ predictions, cl
           {/* Conviction Bar */}
           <div className="mb-4 mt-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-black text-sm font-extrabold">Conviction</span>
-              <span className="text-black font-semibold text-sm">{Math.round(conviction)}%</span>
+              <span className="text-white text-sm font-extrabold">Conviction</span>
+              <span className="text-white font-semibold text-sm">{Math.round(conviction)}%</span>
             </div>
-            <div className="flex h-2 rounded-full bg-black/10 overflow-hidden border border-black/10">
+            <div className="flex h-2 rounded-full bg-white/10 overflow-hidden border border-white/10">
               {odds.map((odd, index) => {
                 let bgColor: string;
                 if (isYesNo) {
