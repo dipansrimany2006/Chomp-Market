@@ -10,19 +10,21 @@ import {
   Download,
   PlusCircle,
   ChevronDown,
-  ChevronUp,
   Calendar,
   Info,
   Loader2,
   Wallet,
   ExternalLink,
-  CheckCircle,
+  BookmarkCheck ,
   Trophy,
   Gift,
+  Heart,
+  MoreHorizontal,
+  AlertCircle,
 } from 'lucide-react';
 import PriceChart from '@/components/PriceChart';
 import { useMarket, MarketStatus, formatTokenAmount } from '@/hooks/useContracts';
-import { usePoll, usePollsByCategory, useMarketInfo, useCurrentUserPosition, useUserBalance, useInvalidateMarketData } from '@/hooks/useQueries';
+import { usePoll, usePollsByCategory, useMarketInfo, useCurrentUserPosition, useUserBalance, useInvalidateMarketData, useComments, useCreateComment, useLikeComment, useActivity, useCreateActivity, useHolders, useIsWatched, useAddToWatchlist, useRemoveFromWatchlist, Comment, ActivityItem, Holder } from '@/hooks/useQueries';
 import { MANTLE_SEPOLIA } from '@/lib/contracts';
 import PageTransition from '@/components/ui/page-transition';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -39,7 +41,7 @@ const OPTION_COLORS = [
 export default function PredictionDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { authenticated, login } = usePrivy();
+  const { authenticated, login, user } = usePrivy();
   const [selectedOptionIndex, setSelectedOptionIndex] = useState<number>(0);
   const [orderType, setOrderType] = useState<'buy' | 'sell'>('buy');
   const [amount, setAmount] = useState('');
@@ -48,6 +50,10 @@ export default function PredictionDetailPage() {
   const [isBuying, setIsBuying] = useState(false);
   const [isClaiming, setIsClaiming] = useState(false);
   const [txSuccess, setTxSuccess] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'comments' | 'holders' | 'activity'>('comments');
+  const [commentText, setCommentText] = useState('');
+  const [commentSort, setCommentSort] = useState<'newest' | 'oldest'>('newest');
+  const [holdersOnly, setHoldersOnly] = useState(false);
 
   // React Query hooks for data fetching
   const { data: pollData, isLoading } = usePoll(params.id as string);
@@ -71,6 +77,20 @@ export default function PredictionDetailPage() {
 
   // Cache invalidation helper
   const { invalidateAfterTrade, invalidateAfterClaim } = useInvalidateMarketData();
+
+  // Comments, Activity, and Holders hooks
+  const { data: commentsData, isLoading: commentsLoading } = useComments(params.id as string, commentSort);
+  const { data: activityData, isLoading: activityLoading } = useActivity(params.id as string);
+  const { data: holdersData, isLoading: holdersLoading } = useHolders(params.id as string);
+  const createComment = useCreateComment();
+  const likeComment = useLikeComment();
+  const createActivity = useCreateActivity();
+
+  // Watchlist hooks
+  const { data: watchlistData } = useIsWatched(user?.wallet?.address, params.id as string);
+  const addToWatchlist = useAddToWatchlist();
+  const removeFromWatchlist = useRemoveFromWatchlist();
+  const isWatched = watchlistData?.isWatched ?? false;
 
   // Helper to increment totalTrades count
   const incrementTotalTrades = async () => {
@@ -114,6 +134,19 @@ export default function PredictionDetailPage() {
       await buyShares(selectedOptionIndex, amount);
       const optionLabel = marketInfo?.optionLabels[selectedOptionIndex] || `Option ${selectedOptionIndex + 1}`;
       setTxSuccess(`Successfully bought ${optionLabel} shares!`);
+
+      // Create activity record
+      if (user?.wallet?.address) {
+        createActivity.mutate({
+          pollId: params.id as string,
+          walletAddress: user.wallet.address,
+          action: 'bought',
+          optionIndex: selectedOptionIndex,
+          optionLabel,
+          amount,
+        });
+      }
+
       setAmount('');
       // Invalidate cached data to trigger refetch
       invalidateAfterTrade(contractAddress);
@@ -159,6 +192,19 @@ export default function PredictionDetailPage() {
       await sellShares(selectedOptionIndex, amount);
       const optionLabel = marketInfo?.optionLabels[selectedOptionIndex] || `Option ${selectedOptionIndex + 1}`;
       setTxSuccess(`Successfully sold ${optionLabel} shares!`);
+
+      // Create activity record
+      if (user?.wallet?.address) {
+        createActivity.mutate({
+          pollId: params.id as string,
+          walletAddress: user.wallet.address,
+          action: 'sold',
+          optionIndex: selectedOptionIndex,
+          optionLabel,
+          amount,
+        });
+      }
+
       setAmount('');
       // Invalidate cached data to trigger refetch
       invalidateAfterTrade(contractAddress);
@@ -195,6 +241,107 @@ export default function PredictionDetailPage() {
     } finally {
       setIsClaiming(false);
     }
+  };
+
+  // Handle posting a comment
+  const handlePostComment = () => {
+    if (!authenticated) {
+      login();
+      return;
+    }
+
+    if (!commentText.trim()) return;
+
+    if (!user?.wallet?.address) {
+      alert('Please connect your wallet to comment');
+      return;
+    }
+
+    createComment.mutate({
+      pollId: params.id as string,
+      walletAddress: user.wallet.address,
+      content: commentText.trim(),
+    }, {
+      onSuccess: () => {
+        setCommentText('');
+      },
+      onError: (err) => {
+        alert(err instanceof Error ? err.message : 'Failed to post comment');
+      },
+    });
+  };
+
+  // Handle liking a comment
+  const handleLikeComment = (commentId: string) => {
+    if (!authenticated) {
+      login();
+      return;
+    }
+
+    if (!user?.wallet?.address) return;
+
+    const comment = commentsData?.comments?.find((c: Comment) => c._id === commentId);
+    const hasLiked = comment?.likes?.includes(user.wallet.address.toLowerCase());
+
+    likeComment.mutate({
+      commentId,
+      walletAddress: user.wallet.address,
+      action: hasLiked ? 'unlike' : 'like',
+      pollId: params.id as string,
+    });
+  };
+
+  // Handle watchlist toggle
+  const handleToggleWatchlist = () => {
+    if (!authenticated) {
+      login();
+      return;
+    }
+
+    if (!user?.wallet?.address) return;
+
+    const pollId = params.id as string;
+    const walletAddress = user.wallet.address;
+
+    if (isWatched) {
+      removeFromWatchlist.mutate({ walletAddress, pollId });
+    } else {
+      addToWatchlist.mutate({ walletAddress, pollId });
+    }
+  };
+
+  // Format time ago
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (seconds < 60) return 'just now';
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+    if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
+    return date.toLocaleDateString();
+  };
+
+  // Generate avatar gradient based on wallet address
+  const getAvatarGradient = (address: string) => {
+    const gradients = [
+      'from-blue-500 to-purple-600',
+      'from-green-500 to-teal-600',
+      'from-orange-500 to-red-600',
+      'from-pink-500 to-purple-600',
+      'from-cyan-500 to-blue-600',
+      'from-purple-500 to-pink-600',
+      'from-yellow-500 to-orange-600',
+      'from-red-500 to-rose-600',
+    ];
+    const index = parseInt(address.slice(-2), 16) % gradients.length;
+    return gradients[index];
+  };
+
+  // Truncate wallet address for display
+  const truncateAddress = (address: string) => {
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
   // Calculate user's potential winnings
@@ -379,8 +526,22 @@ export default function PredictionDetailPage() {
               <button className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
                 <Download className="h-5 w-5" />
               </button>
-              <button className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
-                <PlusCircle className="h-5 w-5" />
+              <button
+                onClick={handleToggleWatchlist}
+                disabled={addToWatchlist.isPending || removeFromWatchlist.isPending}
+                className={cn(
+                  "p-2 rounded-lg transition-colors disabled:opacity-50",
+                  isWatched
+                    ? "bg-primary/20 text-primary hover:bg-primary/30"
+                    : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                )}
+                title={isWatched ? "Remove from watchlist" : "Add to watchlist"}
+              >
+                {isWatched ? (
+                  <BookmarkCheck  className="h-5 w-5" fill="currentColor" />
+                ) : (
+                  <PlusCircle className="h-5 w-5" />
+                )}
               </button>
             </div>
           </div>
@@ -406,7 +567,7 @@ export default function PredictionDetailPage() {
                         : 'bg-muted'
                   )}>
                     {userPosition?.hasClaimed ? (
-                      <CheckCircle className="h-6 w-6 text-primary" />
+                      <BookmarkCheck className="h-6 w-6 text-primary" />
                     ) : userWinningsInfo.hasWinningShares ? (
                       <Trophy className="h-6 w-6 text-primary" />
                     ) : (
@@ -505,7 +666,7 @@ export default function PredictionDetailPage() {
                     <div className="flex items-center gap-1.5 sm:gap-2">
                       <span className="text-foreground font-medium text-sm sm:text-base">{label}</span>
                       {isWinner && (
-                        <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
+                        <BookmarkCheck className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
                       )}
                     </div>
                   </div>
@@ -547,7 +708,7 @@ export default function PredictionDetailPage() {
           />
 
           {/* Rules Summary */}
-          <div className="rounded-2xl border border-border bg-neutral-900 backdrop-blur-xl">
+          <div className="rounded-2xl border border-border bg-neutral-900 backdrop-blur-xl overflow-hidden">
             <button
               onClick={() => setRulesExpanded(!rulesExpanded)}
               className="w-full flex items-center justify-between p-6"
@@ -555,35 +716,68 @@ export default function PredictionDetailPage() {
               <h3 className="text-lg font-semibold text-foreground">Rules summary</h3>
               <div className="flex items-center gap-2">
                 <Info className="h-4 w-4 text-muted-foreground" />
-                {rulesExpanded ? (
-                  <ChevronUp className="h-5 w-5 text-muted-foreground" />
-                ) : (
-                  <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                )}
+                <ChevronDown
+                  className={cn(
+                    "h-5 w-5 text-muted-foreground transition-transform duration-300 ease-out",
+                    rulesExpanded && "rotate-180"
+                  )}
+                />
               </div>
             </button>
 
-            {rulesExpanded && (
-              <div className="px-6 pb-6 space-y-4">
-                <p className="text-muted-foreground text-sm leading-relaxed">
-                  {prediction.description || `This market resolves based on the outcome of: "${prediction.title}". Multiple options can win.`}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {options.map((opt, i) => (
-                    <span key={i} className="px-3 py-1 rounded-lg bg-neutral-800 text-foreground text-sm">
-                      {opt}
-                    </span>
-                  ))}
+            <div
+              className={cn(
+                "grid transition-all duration-300 ease-out",
+                rulesExpanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+              )}
+            >
+              <div className="overflow-hidden">
+                <div className="px-6 pb-6 space-y-4">
+                  <p
+                    className={cn(
+                      "text-muted-foreground text-sm leading-relaxed transition-all duration-300 ease-out",
+                      rulesExpanded ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2"
+                    )}
+                    style={{ transitionDelay: rulesExpanded ? '100ms' : '0ms' }}
+                  >
+                    {prediction.description || `This market resolves based on the outcome of: "${prediction.title}". Multiple options can win.`}
+                  </p>
+                  <div
+                    className={cn(
+                      "flex flex-wrap gap-2 transition-all duration-300 ease-out",
+                      rulesExpanded ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2"
+                    )}
+                    style={{ transitionDelay: rulesExpanded ? '200ms' : '0ms' }}
+                  >
+                    {options.map((opt, i) => (
+                      <span
+                        key={i}
+                        className={cn(
+                          "px-3 py-1 rounded-lg bg-neutral-800 text-foreground text-sm transition-all duration-300 ease-out",
+                          rulesExpanded ? "opacity-100 scale-100" : "opacity-0 scale-95"
+                        )}
+                        style={{ transitionDelay: rulesExpanded ? `${250 + i * 50}ms` : '0ms' }}
+                      >
+                        {opt}
+                      </span>
+                    ))}
+                  </div>
+                  <p
+                    className={cn(
+                      "text-muted-foreground text-sm transition-all duration-300 ease-out",
+                      rulesExpanded ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2"
+                    )}
+                    style={{ transitionDelay: rulesExpanded ? '350ms' : '0ms' }}
+                  >
+                    Market end date: <span className="text-foreground">{prediction.endDate}</span>
+                  </p>
                 </div>
-                <p className="text-muted-foreground text-sm">
-                  Market end date: <span className="text-foreground">{prediction.endDate}</span>
-                </p>
               </div>
-            )}
+            </div>
           </div>
 
-          {/* Timeline */}
-          <div className="rounded-2xl border border-border bg-neutral-900 backdrop-blur-xl">
+          {/* Timeline and Payout */}
+          <div className="rounded-2xl border border-border bg-neutral-900 backdrop-blur-xl overflow-hidden">
             <button
               onClick={() => setTimelineExpanded(!timelineExpanded)}
               className="w-full flex items-center justify-between p-6"
@@ -592,66 +786,450 @@ export default function PredictionDetailPage() {
                 <Calendar className="h-5 w-5 text-muted-foreground" />
                 <h3 className="text-base font-medium text-foreground">Timeline and payout</h3>
               </div>
-              {timelineExpanded ? (
-                <ChevronUp className="h-5 w-5 text-muted-foreground" />
-              ) : (
-                <ChevronDown className="h-5 w-5 text-muted-foreground" />
-              )}
+              <ChevronDown
+                className={cn(
+                  "h-5 w-5 text-muted-foreground transition-transform duration-300 ease-out",
+                  timelineExpanded && "rotate-180"
+                )}
+              />
             </button>
 
-            {timelineExpanded && (
-              <div className="px-6 pb-6 space-y-4">
-                <div className="flex items-center justify-between py-3 border-b border-border">
-                  <span className="text-muted-foreground text-sm">Market closes</span>
-                  <span className="text-foreground font-medium">{prediction.endDate}</span>
-                </div>
-                <div className="flex items-center justify-between py-3 border-b border-border">
-                  <span className="text-muted-foreground text-sm">Options</span>
-                  <span className="text-foreground font-medium">{options.length} outcomes</span>
-                </div>
-                <div className="flex items-center justify-between py-3">
-                  <span className="text-muted-foreground text-sm">Payout</span>
-                  <span className="text-foreground font-medium">Proportional to winning shares</span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Related Markets */}
-          {relatedMarkets.length > 0 && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-foreground">Related markets</h3>
-              <div className="space-y-3">
-                {relatedMarkets.map((market) => (
-                  <div
-                    key={market.id}
-                    onClick={() => router.push(`/prediction/${market.id}`)}
-                    className="flex items-center gap-4 p-4 rounded-xl border border-border bg-neutral-900 hover:bg-neutral-800 transition-colors cursor-pointer"
-                  >
-                    <div className="w-10 h-10 rounded-lg overflow-hidden bg-neutral-800 shrink-0">
-                      {market.imageUrl ? (
-                        <img
-                          src={market.imageUrl}
-                          alt={market.title}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-neutral-800" />
+            <div
+              className={cn(
+                "grid transition-all duration-300 ease-out",
+                timelineExpanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+              )}
+            >
+              <div className="overflow-hidden">
+                <div className="px-6 pb-6">
+                  {/* Vertical Timeline */}
+                  <div className="relative pl-8 space-y-6">
+                    {/* Connecting line - animated */}
+                    <div
+                      className={cn(
+                        "absolute left-[11px] top-3 bottom-3 w-[2px] bg-border origin-top transition-transform duration-500 ease-out delay-100",
+                        timelineExpanded ? "scale-y-100" : "scale-y-0"
                       )}
+                    />
+
+                    {/* Market open */}
+                    <div
+                      className={cn(
+                        "relative transition-all duration-300 ease-out",
+                        timelineExpanded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4"
+                      )}
+                      style={{ transitionDelay: timelineExpanded ? '100ms' : '0ms' }}
+                    >
+                      <div className="absolute -left-8 top-0">
+                        <div
+                          className={cn(
+                            "w-6 h-6 rounded-full bg-primary flex items-center justify-center transition-transform duration-300 ease-out",
+                            timelineExpanded ? "scale-100" : "scale-0"
+                          )}
+                          style={{ transitionDelay: timelineExpanded ? '150ms' : '0ms' }}
+                        >
+                          <BookmarkCheck className="h-4 w-4 text-primary-foreground" fill="currentColor" />
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-foreground font-medium">Market open</p>
+                        <p className="text-muted-foreground text-sm">
+                          {prediction.createdAt ? new Date(prediction.createdAt).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                          }) + ' · ' + new Date(prediction.createdAt).toLocaleTimeString('en-US', {
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true,
+                            timeZoneName: 'short'
+                          }) : 'Market is live'}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-foreground font-medium text-sm truncate">{market.title}</h4>
-                      <span className="text-muted-foreground text-xs">{market.volume} Vol</span>
+
+                    {/* Market closes */}
+                    <div
+                      className={cn(
+                        "relative transition-all duration-300 ease-out",
+                        timelineExpanded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4"
+                      )}
+                      style={{ transitionDelay: timelineExpanded ? '200ms' : '0ms' }}
+                    >
+                      <div className="absolute -left-8 top-0">
+                        <div
+                          className={cn(
+                            "w-6 h-6 rounded-full bg-neutral-700 flex items-center justify-center transition-transform duration-300 ease-out",
+                            timelineExpanded ? "scale-100" : "scale-0"
+                          )}
+                          style={{ transitionDelay: timelineExpanded ? '250ms' : '0ms' }}
+                        >
+                          <div className="w-2.5 h-2.5 rounded-full bg-neutral-500" />
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-foreground font-medium">Market closes</p>
+                        <p className="text-muted-foreground text-sm">After the outcome occurs</p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <span className="text-foreground font-bold">{Math.round(market.odds[0] || 50)}%</span>
-                      <span className="text-muted-foreground text-xs block">{market.options[0]}</span>
+
+                    {/* Projected payout */}
+                    <div
+                      className={cn(
+                        "relative transition-all duration-300 ease-out",
+                        timelineExpanded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4"
+                      )}
+                      style={{ transitionDelay: timelineExpanded ? '300ms' : '0ms' }}
+                    >
+                      <div className="absolute -left-8 top-0">
+                        <div
+                          className={cn(
+                            "w-6 h-6 rounded-full bg-neutral-700 flex items-center justify-center transition-transform duration-300 ease-out",
+                            timelineExpanded ? "scale-100" : "scale-0"
+                          )}
+                          style={{ transitionDelay: timelineExpanded ? '350ms' : '0ms' }}
+                        >
+                          <div className="w-2.5 h-2.5 rounded-full bg-neutral-500" />
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-foreground font-medium">Projected payout</p>
+                        <p className="text-muted-foreground text-sm">5 minutes after closing</p>
+                      </div>
                     </div>
                   </div>
-                ))}
+
+                  {/* Market expiration text */}
+                  <p
+                    className={cn(
+                      "text-muted-foreground text-sm mt-6 pt-4 border-t border-border transition-all duration-300 ease-out",
+                      timelineExpanded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
+                    )}
+                    style={{ transitionDelay: timelineExpanded ? '400ms' : '0ms' }}
+                  >
+                    This market will close and expire after a winner is declared. Otherwise, it closes by{' '}
+                    <span className="text-foreground">{prediction.endDate}</span>.
+                  </p>
+
+                  {/* Market metadata */}
+                  <div
+                    className={cn(
+                      "mt-4 space-y-1 text-sm transition-all duration-300 ease-out",
+                      timelineExpanded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
+                    )}
+                    style={{ transitionDelay: timelineExpanded ? '450ms' : '0ms' }}
+                  >
+                    <p>
+                      <span className="text-muted-foreground">Category </span>
+                      <span className="text-foreground font-medium">{prediction.category}</span>
+                    </p>
+                    <p>
+                      <span className="text-muted-foreground">Market </span>
+                      <span className="text-foreground font-medium">{contractAddress ? `${contractAddress.slice(0, 10)}...${contractAddress.slice(-8)}` : prediction.id}</span>
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
-          )}
+          </div>
+
+          {/* Comments, Holders, Activity Tabs */}
+          <div className="rounded-2xl border border-border bg-neutral-900 backdrop-blur-xl overflow-hidden">
+            {/* Tab Headers */}
+            <div className="relative flex items-center gap-6 px-6 pt-4 border-b border-border">
+              <button
+                onClick={() => setActiveTab('comments')}
+                className={cn(
+                  "pb-3 text-sm font-medium transition-colors duration-200",
+                  activeTab === 'comments'
+                    ? "text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Comments
+              </button>
+              <button
+                onClick={() => setActiveTab('holders')}
+                className={cn(
+                  "pb-3 text-sm font-medium transition-colors duration-200",
+                  activeTab === 'holders'
+                    ? "text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Holders
+              </button>
+              <button
+                onClick={() => setActiveTab('activity')}
+                className={cn(
+                  "pb-3 text-sm font-medium transition-colors duration-200",
+                  activeTab === 'activity'
+                    ? "text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Activity
+              </button>
+              {/* Animated underline indicator */}
+              <div
+                className="absolute bottom-0 h-0.5 bg-primary transition-all duration-300 ease-out"
+                style={{
+                  left: activeTab === 'comments' ? '24px' : activeTab === 'holders' ? '116px' : '184px',
+                  width: activeTab === 'comments' ? '72px' : activeTab === 'holders' ? '52px' : '52px',
+                }}
+              />
+            </div>
+
+            {/* Tab Content - Sliding Container */}
+            <div className="overflow-hidden">
+              <div
+                className="flex transition-transform duration-300 ease-out"
+                style={{
+                  transform: `translateX(-${activeTab === 'comments' ? 0 : activeTab === 'holders' ? 100 : 200}%)`
+                }}
+              >
+                {/* Comments Tab */}
+                <div className="w-full flex-shrink-0 p-4 sm:p-6">
+                  <div className="space-y-4">
+                    {/* Add Comment Input */}
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-neutral-800 border border-border">
+                      <input
+                        type="text"
+                        value={commentText}
+                        onChange={(e) => setCommentText(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handlePostComment()}
+                        placeholder={authenticated ? "Add a comment" : "Connect wallet to comment"}
+                        disabled={!authenticated}
+                        className="flex-1 bg-transparent text-foreground placeholder-muted-foreground text-sm focus:outline-none disabled:opacity-50"
+                      />
+                      <button
+                        onClick={handlePostComment}
+                        disabled={!commentText.trim() || createComment.isPending}
+                        className="text-primary font-medium text-sm hover:text-primary/80 transition-colors disabled:opacity-50"
+                      >
+                        {createComment.isPending ? 'Posting...' : 'Post'}
+                      </button>
+                    </div>
+
+                    {/* Filters */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => setCommentSort(commentSort === 'newest' ? 'oldest' : 'newest')}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-800 text-foreground text-sm"
+                        >
+                          {commentSort === 'newest' ? 'Newest' : 'Oldest'}
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        </button>
+                        <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={holdersOnly}
+                            onChange={(e) => setHoldersOnly(e.target.checked)}
+                            className="rounded border-border bg-neutral-800"
+                          />
+                          Holders
+                        </label>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
+                        <AlertCircle className="h-3.5 w-3.5" />
+                        <span>Beware of external links.</span>
+                      </div>
+                    </div>
+
+                    {/* Comments List */}
+                    <div className="space-y-4">
+                      {commentsLoading ? (
+                        <div className="space-y-4">
+                          {[1, 2, 3].map((i) => (
+                            <div key={i} className="flex items-start gap-3">
+                              <Skeleton className="w-10 h-10 rounded-full" />
+                              <div className="flex-1 space-y-2">
+                                <Skeleton className="h-4 w-32" />
+                                <Skeleton className="h-4 w-full" />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : commentsData?.comments && commentsData.comments.length > 0 ? (
+                        commentsData.comments.map((comment: Comment) => (
+                          <div key={comment._id} className="space-y-3">
+                            <div className="flex items-start gap-3">
+                              <div className={cn("w-10 h-10 rounded-full bg-gradient-to-br shrink-0", getAvatarGradient(comment.walletAddress))} />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-foreground font-medium text-sm">
+                                    {comment.userName || truncateAddress(comment.walletAddress)}
+                                  </span>
+                                  <span className="text-muted-foreground text-xs">{formatTimeAgo(comment.createdAt)}</span>
+                                  <button className="ml-auto text-muted-foreground hover:text-foreground">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </button>
+                                </div>
+                                <p className="text-foreground text-sm mt-1">
+                                  {comment.content}
+                                </p>
+                                <button
+                                  onClick={() => handleLikeComment(comment._id)}
+                                  className={cn(
+                                    "flex items-center gap-1.5 mt-2 text-sm transition-colors",
+                                    comment.likes?.includes(user?.wallet?.address?.toLowerCase() || '')
+                                      ? "text-red-500"
+                                      : "text-muted-foreground hover:text-foreground"
+                                  )}
+                                >
+                                  <Heart
+                                    className="h-4 w-4"
+                                    fill={comment.likes?.includes(user?.wallet?.address?.toLowerCase() || '') ? 'currentColor' : 'none'}
+                                  />
+                                  <span>{comment.likes?.length || 0}</span>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <p>No comments yet. Be the first to comment!</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Holders Tab */}
+                <div className="w-full flex-shrink-0 p-4 sm:p-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
+                      <span>Top holders in this market</span>
+                      <span>{holdersData?.totalHolders || 0} holders</span>
+                    </div>
+
+                    {/* Holders List */}
+                    <div className="space-y-3">
+                      {holdersLoading ? (
+                        <div className="space-y-3">
+                          {[1, 2, 3, 4, 5].map((i) => (
+                            <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-neutral-800/50">
+                              <Skeleton className="w-10 h-10 rounded-full" />
+                              <div className="flex-1 space-y-2">
+                                <Skeleton className="h-4 w-32" />
+                                <Skeleton className="h-3 w-24" />
+                              </div>
+                              <Skeleton className="h-4 w-16" />
+                            </div>
+                          ))}
+                        </div>
+                      ) : holdersData?.holders && holdersData.holders.length > 0 ? (
+                        holdersData.holders.map((holder: Holder, index: number) => (
+                          <div
+                            key={holder.walletAddress}
+                            className="flex items-center gap-3 p-3 rounded-xl bg-neutral-800/50 hover:bg-neutral-800 transition-colors"
+                          >
+                            <div className={cn("w-10 h-10 rounded-full bg-gradient-to-br shrink-0", getAvatarGradient(holder.walletAddress))} />
+                            <div className="flex-1 min-w-0">
+                              <span className="text-foreground font-medium text-sm block">
+                                {holder.userName || truncateAddress(holder.walletAddress)}
+                              </span>
+                              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                {holder.positions.map((pos, i) => {
+                                  const color = OPTION_COLORS[pos.optionIndex % OPTION_COLORS.length];
+                                  return (
+                                    <span
+                                      key={i}
+                                      className={cn(
+                                        "px-2 py-0.5 rounded-full text-xs",
+                                        color.bgLight,
+                                        color.text
+                                      )}
+                                    >
+                                      {pos.amount.toFixed(2)} {pos.optionLabel}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <span className="text-foreground font-bold text-sm">{holder.totalValue.toFixed(2)}</span>
+                              <span className="text-muted-foreground text-xs block">MNT</span>
+                            </div>
+                            <div className="text-muted-foreground text-xs shrink-0">
+                              #{index + 1}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <p>No holders yet. Be the first to buy shares!</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Activity Tab */}
+                <div className="w-full flex-shrink-0 p-4 sm:p-6">
+                  <div className="space-y-4">
+                    <div className="text-sm text-muted-foreground mb-2">Recent activity</div>
+
+                    {/* Activity List */}
+                    <div className="space-y-3">
+                      {activityLoading ? (
+                        <div className="space-y-3">
+                          {[1, 2, 3, 4, 5].map((i) => (
+                            <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-neutral-800/50">
+                              <Skeleton className="w-10 h-10 rounded-full" />
+                              <div className="flex-1 space-y-2">
+                                <Skeleton className="h-4 w-48" />
+                                <Skeleton className="h-3 w-24" />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : activityData?.activities && activityData.activities.length > 0 ? (
+                        activityData.activities.map((activity: ActivityItem) => (
+                          <div key={activity._id} className="flex items-center gap-3 p-3 rounded-xl bg-neutral-800/50">
+                            <div className={cn("w-10 h-10 rounded-full bg-gradient-to-br shrink-0", getAvatarGradient(activity.walletAddress))} />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-foreground font-medium text-sm">
+                                  {activity.userName || truncateAddress(activity.walletAddress)}
+                                </span>
+                                <span className={cn(
+                                  "text-sm",
+                                  activity.action === 'bought' ? 'text-primary' : activity.action === 'sold' ? 'text-[#ee3e3d]' : 'text-foreground'
+                                )}>
+                                  {activity.action}
+                                </span>
+                                <span className="text-foreground text-sm">{activity.amount} MNT</span>
+                              </div>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                {activity.optionLabel && (
+                                  <span className={cn(
+                                    "px-2 py-0.5 rounded-full text-xs",
+                                    activity.optionIndex === 0
+                                      ? "bg-primary/20 text-primary"
+                                      : "bg-[#ee3e3d]/20 text-[#ee3e3d]"
+                                  )}>
+                                    {activity.optionLabel}
+                                  </span>
+                                )}
+                                <span className="text-muted-foreground text-xs">{formatTimeAgo(activity.createdAt)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <p>No activity yet. Be the first to trade!</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Sidebar - Order Panel */}
@@ -799,7 +1377,7 @@ export default function PredictionDetailPage() {
             {/* Transaction Success Message */}
             {txSuccess && (
               <div className="mb-4 p-3 rounded-lg bg-primary/20 border border-primary/30 flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-primary" />
+                <BookmarkCheck className="h-4 w-4 text-primary" />
                 <span className="text-foreground text-sm">{txSuccess}</span>
               </div>
             )}
@@ -871,7 +1449,7 @@ export default function PredictionDetailPage() {
                 )}
                 {userPosition.hasClaimed && (
                   <div className="mt-3 py-2.5 rounded-lg bg-primary/20 border border-primary/30 text-foreground text-sm font-medium flex items-center justify-center gap-2">
-                    <CheckCircle className="h-4 w-4" />
+                    <BookmarkCheck className="h-4 w-4" />
                     Winnings Claimed
                   </div>
                 )}
@@ -893,6 +1471,37 @@ export default function PredictionDetailPage() {
               </div>
             )}
           </div>
+
+          {/* Related Markets - Sidebar */}
+          {relatedMarkets.length > 0 && (
+            <div className="rounded-xl sm:rounded-2xl border border-border bg-neutral-900 backdrop-blur-xl p-4 sm:p-6">
+              <h3 className="text-base font-semibold text-foreground mb-4">Related markets</h3>
+              <div className="space-y-3">
+                {relatedMarkets.map((market) => (
+                  <div
+                    key={market.id}
+                    onClick={() => router.push(`/prediction/${market.id}`)}
+                    className="flex items-center gap-3 p-3 rounded-xl bg-neutral-800/50 hover:bg-neutral-800 transition-colors cursor-pointer"
+                  >
+                    <div className="w-10 h-10 rounded-lg overflow-hidden bg-neutral-800 shrink-0">
+                      {market.imageUrl ? (
+                        <img
+                          src={market.imageUrl}
+                          alt={market.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-neutral-700" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-foreground font-medium text-sm line-clamp-2">{market.title}</h4>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </PageTransition>

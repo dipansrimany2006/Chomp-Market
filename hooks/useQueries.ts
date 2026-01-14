@@ -31,6 +31,20 @@ export const queryKeys = {
   categories: {
     all: ['categories'] as const,
   },
+  comments: {
+    byPoll: (pollId: string) => ['comments', 'poll', pollId] as const,
+  },
+  activity: {
+    byPoll: (pollId: string) => ['activity', 'poll', pollId] as const,
+    byUser: (address: string) => ['activity', 'user', address] as const,
+  },
+  holders: {
+    byPoll: (pollId: string) => ['holders', 'poll', pollId] as const,
+  },
+  watchlist: {
+    byUser: (walletAddress: string) => ['watchlist', 'user', walletAddress] as const,
+    check: (walletAddress: string, pollId: string) => ['watchlist', 'check', walletAddress, pollId] as const,
+  },
   // Blockchain queries
   markets: {
     all: ['markets'] as const,
@@ -415,5 +429,398 @@ export function usePredictionsByCategory(category: string | null) {
       return enrichPredictionsWithLiveOdds(predictions);
     },
     staleTime: 30 * 1000,
+  });
+}
+
+// ============================================
+// Comment Hooks
+// ============================================
+
+export interface Comment {
+  _id: string;
+  pollId: string;
+  walletAddress: string;
+  userName?: string;
+  content: string;
+  likes: string[];
+  parentCommentId?: string;
+  isDeleted: boolean;
+  createdAt: string;
+  updatedAt: string;
+  replies?: Comment[];
+}
+
+interface CommentsResponse {
+  success: boolean;
+  comments: Comment[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
+// Fetch comments for a poll
+export function useComments(pollId: string | undefined, sortBy: 'newest' | 'oldest' = 'newest') {
+  return useQuery({
+    queryKey: [...queryKeys.comments.byPoll(pollId || ''), sortBy],
+    queryFn: async (): Promise<CommentsResponse> => {
+      const res = await fetch(`/api/comment?pollId=${pollId}&sortBy=${sortBy}`);
+      if (!res.ok) throw new Error('Failed to fetch comments');
+      return res.json();
+    },
+    enabled: !!pollId,
+    staleTime: 10 * 1000, // 10 seconds
+  });
+}
+
+// Create a comment mutation
+export function useCreateComment() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      pollId,
+      walletAddress,
+      content,
+      parentCommentId,
+    }: {
+      pollId: string;
+      walletAddress: string;
+      content: string;
+      parentCommentId?: string;
+    }) => {
+      const res = await fetch('/api/comment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pollId, walletAddress, content, parentCommentId }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to create comment');
+      }
+      return res.json();
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.comments.byPoll(variables.pollId) });
+    },
+  });
+}
+
+// Like/unlike a comment mutation
+export function useLikeComment() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      commentId,
+      walletAddress,
+      action,
+      pollId,
+    }: {
+      commentId: string;
+      walletAddress: string;
+      action: 'like' | 'unlike';
+      pollId: string;
+    }) => {
+      const res = await fetch(`/api/comment/${commentId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ walletAddress, action }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to update like');
+      }
+      return res.json();
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.comments.byPoll(variables.pollId) });
+    },
+  });
+}
+
+// Delete a comment mutation
+export function useDeleteComment() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      commentId,
+      walletAddress,
+      pollId,
+    }: {
+      commentId: string;
+      walletAddress: string;
+      pollId: string;
+    }) => {
+      const res = await fetch(`/api/comment/${commentId}?walletAddress=${walletAddress}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to delete comment');
+      }
+      return res.json();
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.comments.byPoll(variables.pollId) });
+    },
+  });
+}
+
+// ============================================
+// Activity Hooks
+// ============================================
+
+export interface ActivityItem {
+  _id: string;
+  pollId: string;
+  walletAddress: string;
+  userName?: string;
+  action: 'bought' | 'sold' | 'claimed' | 'created';
+  optionIndex?: number;
+  optionLabel?: string;
+  amount: string;
+  txHash?: string;
+  createdAt: string;
+}
+
+interface ActivityResponse {
+  success: boolean;
+  activities: ActivityItem[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
+// Fetch activity for a poll
+export function useActivity(pollId: string | undefined) {
+  return useQuery({
+    queryKey: queryKeys.activity.byPoll(pollId || ''),
+    queryFn: async (): Promise<ActivityResponse> => {
+      const res = await fetch(`/api/activity?pollId=${pollId}`);
+      if (!res.ok) throw new Error('Failed to fetch activity');
+      return res.json();
+    },
+    enabled: !!pollId,
+    staleTime: 10 * 1000, // 10 seconds
+    refetchInterval: 30 * 1000, // Auto-refresh every 30 seconds
+  });
+}
+
+// Fetch activity for a user
+export function useUserActivity(walletAddress: string | undefined) {
+  return useQuery({
+    queryKey: queryKeys.activity.byUser(walletAddress || ''),
+    queryFn: async (): Promise<ActivityResponse> => {
+      const res = await fetch(`/api/activity?walletAddress=${walletAddress}`);
+      if (!res.ok) throw new Error('Failed to fetch user activity');
+      return res.json();
+    },
+    enabled: !!walletAddress,
+    staleTime: 10 * 1000,
+  });
+}
+
+// Create an activity record mutation
+export function useCreateActivity() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      pollId,
+      walletAddress,
+      action,
+      optionIndex,
+      optionLabel,
+      amount,
+      txHash,
+    }: {
+      pollId: string;
+      walletAddress: string;
+      action: 'bought' | 'sold' | 'claimed' | 'created';
+      optionIndex?: number;
+      optionLabel?: string;
+      amount: string;
+      txHash?: string;
+    }) => {
+      const res = await fetch('/api/activity', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pollId,
+          walletAddress,
+          action,
+          optionIndex,
+          optionLabel,
+          amount,
+          txHash,
+        }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to create activity');
+      }
+      return res.json();
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.activity.byPoll(variables.pollId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.activity.byUser(variables.walletAddress) });
+      // Also invalidate holders since activity affects positions
+      queryClient.invalidateQueries({ queryKey: queryKeys.holders.byPoll(variables.pollId) });
+    },
+  });
+}
+
+// ============================================
+// Holders Hooks
+// ============================================
+
+export interface HolderPosition {
+  optionIndex: number;
+  optionLabel: string;
+  amount: number;
+}
+
+export interface Holder {
+  walletAddress: string;
+  userName: string | null;
+  positions: HolderPosition[];
+  totalValue: number;
+  lastActivity: string;
+}
+
+interface HoldersResponse {
+  success: boolean;
+  holders: Holder[];
+  totalHolders: number;
+}
+
+// Fetch holders for a poll
+export function useHolders(pollId: string | undefined) {
+  return useQuery({
+    queryKey: queryKeys.holders.byPoll(pollId || ''),
+    queryFn: async (): Promise<HoldersResponse> => {
+      const res = await fetch(`/api/holders?pollId=${pollId}`);
+      if (!res.ok) throw new Error('Failed to fetch holders');
+      return res.json();
+    },
+    enabled: !!pollId,
+    staleTime: 30 * 1000, // 30 seconds
+    refetchInterval: 60 * 1000, // Auto-refresh every minute
+  });
+}
+
+// ============================================
+// Watchlist Hooks
+// ============================================
+
+export interface WatchlistItem {
+  _id: string;
+  walletAddress: string;
+  pollId: string;
+  createdAt: string;
+  poll?: PollFromAPI;
+}
+
+interface WatchlistResponse {
+  success: boolean;
+  watchlist: WatchlistItem[];
+  total: number;
+}
+
+interface WatchlistCheckResponse {
+  success: boolean;
+  isWatched: boolean;
+}
+
+// Check if a specific poll is in user's watchlist
+export function useIsWatched(walletAddress: string | undefined, pollId: string | undefined) {
+  return useQuery({
+    queryKey: queryKeys.watchlist.check(walletAddress || '', pollId || ''),
+    queryFn: async (): Promise<WatchlistCheckResponse> => {
+      const res = await fetch(`/api/watchlist?walletAddress=${walletAddress}&pollId=${pollId}`);
+      if (!res.ok) throw new Error('Failed to check watchlist');
+      return res.json();
+    },
+    enabled: !!walletAddress && !!pollId,
+    staleTime: 30 * 1000,
+  });
+}
+
+// Fetch user's full watchlist
+export function useUserWatchlist(walletAddress: string | undefined) {
+  return useQuery({
+    queryKey: queryKeys.watchlist.byUser(walletAddress || ''),
+    queryFn: async (): Promise<WatchlistResponse> => {
+      const res = await fetch(`/api/watchlist?walletAddress=${walletAddress}`);
+      if (!res.ok) throw new Error('Failed to fetch watchlist');
+      return res.json();
+    },
+    enabled: !!walletAddress,
+    staleTime: 30 * 1000,
+  });
+}
+
+// Add to watchlist mutation
+export function useAddToWatchlist() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      walletAddress,
+      pollId,
+    }: {
+      walletAddress: string;
+      pollId: string;
+    }) => {
+      const res = await fetch('/api/watchlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ walletAddress, pollId }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to add to watchlist');
+      }
+      return res.json();
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.watchlist.byUser(variables.walletAddress) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.watchlist.check(variables.walletAddress, variables.pollId) });
+    },
+  });
+}
+
+// Remove from watchlist mutation
+export function useRemoveFromWatchlist() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      walletAddress,
+      pollId,
+    }: {
+      walletAddress: string;
+      pollId: string;
+    }) => {
+      const res = await fetch(`/api/watchlist?walletAddress=${walletAddress}&pollId=${pollId}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to remove from watchlist');
+      }
+      return res.json();
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.watchlist.byUser(variables.walletAddress) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.watchlist.check(variables.walletAddress, variables.pollId) });
+    },
   });
 }

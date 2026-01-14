@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePrivy } from "@privy-io/react-auth";
-import { Plus, User, LogOut, ChevronDown, LayoutDashboard, Menu, X, Search, Layers } from "lucide-react";
+import { Plus, User, LogOut, ChevronDown, LayoutDashboard, Menu, X, Search, Layers, Bookmark } from "lucide-react";
 import RegisterModal from "./RegisterModal";
 
 interface UserData {
@@ -196,6 +196,14 @@ const Navbar = () => {
                   <LayoutDashboard className="h-4 w-4" />
                   My Markets
                 </Link>
+                <Link
+                  href="/watchlist"
+                  onClick={() => setShowUserMenu(false)}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors border-b border-border"
+                >
+                  <Bookmark className="h-4 w-4" />
+                  Watchlist
+                </Link>
                 <button
                   type="button"
                   onClick={handleLogout}
@@ -298,6 +306,18 @@ const Navbar = () => {
               >
                 <LayoutDashboard className="h-5 w-5" />
                 My Markets
+              </Link>
+            )}
+
+            {/* Watchlist */}
+            {authenticated && (
+              <Link
+                href="/watchlist"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 p-4 rounded-xl bg-muted hover:bg-muted/80 text-foreground transition-colors"
+              >
+                <Bookmark className="h-5 w-5" />
+                Watchlist
               </Link>
             )}
 
